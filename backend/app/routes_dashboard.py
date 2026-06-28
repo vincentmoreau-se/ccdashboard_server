@@ -113,6 +113,16 @@ def tools() -> list[dict]:
     return metrics.tools_breakdown()
 
 
+@router.get("/api/technologies", dependencies=[Depends(require_dashboard)])
+def technologies() -> dict:
+    return metrics.technologies_breakdown()
+
+
+@router.get("/api/tooling", dependencies=[Depends(require_dashboard)])
+def tooling() -> dict:
+    return metrics.tooling_breakdown()
+
+
 @router.get("/api/sessions", dependencies=[Depends(require_dashboard)])
 def sessions(
     active: bool = False,

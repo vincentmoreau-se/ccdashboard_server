@@ -335,16 +335,93 @@ def provider_split() -> list[dict]:
     ]
 
 
-def tools_breakdown(limit: int = 20) -> list[dict]:
-    conn = get_conn()
-    rows = conn.execute("SELECT tool_counts FROM session").fetchall()
+def _aggregate_json_column(conn, col: str) -> Counter:
+    """Aggregate a single JSON column ({name: count}) across all sessions.
+
+    Robust to NULL (treated as empty) and invalid JSON (silently skipped so
+    one corrupt session never breaks the aggregate).
+    """
+    rows = conn.execute(f"SELECT {col} FROM session").fetchall()
     counter: Counter = Counter()
     for r in rows:
-        for tool, n in json.loads(r["tool_counts"] or "{}").items():
-            counter[tool] += n
-    return [
-        {"tool": t, "count": c} for t, c in counter.most_common(limit)
+        raw = r[col]
+        if not raw:
+            continue
+        try:
+            data = json.loads(raw)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if isinstance(data, dict):
+            for name, n in data.items():
+                counter[name] += n
+    return counter
+
+
+def tools_breakdown(limit: int = 20) -> list[dict]:
+    conn = get_conn()
+    counter = _aggregate_json_column(conn, "tool_counts")
+    return [{"tool": t, "count": c} for t, c in counter.most_common(limit)]
+
+
+def technologies_breakdown(limit: int = 20) -> dict:
+    """Aggregate language_counts and framework_counts across all sessions.
+
+    Returns:
+        {
+          "languages": [{"language": str, "count": int}, ...],
+          "frameworks": [{"framework": str, "count": int}, ...]
+        }
+    """
+    conn = get_conn()
+    lang_counter = _aggregate_json_column(conn, "language_counts")
+    fw_counter = _aggregate_json_column(conn, "framework_counts")
+    return {
+        "languages": [
+            {"language": lang, "count": c}
+            for lang, c in lang_counter.most_common(limit)
+        ],
+        "frameworks": [
+            {"framework": fw, "count": c}
+            for fw, c in fw_counter.most_common(limit)
+        ],
+    }
+
+
+def tooling_breakdown(limit: int = 20) -> dict:
+    """Aggregate tool-related JSON columns across all sessions.
+
+    Item key is "tool" for all sub-lists (builtin, user, skills, mcp_servers,
+    subagents, slash_commands) — a uniform key lets the frontend D3 layer bind
+    by "tool" across every category without conditional logic.
+
+    Returns:
+        {
+          "builtin":        [{"tool": str, "count": int}, ...],
+          "user":           [...],
+          "skills":         [...],
+          "mcp_servers":    [...],
+          "subagents":      [...],
+          "slash_commands": [...]
+        }
+    The builtin/user split is sent as-is from the client; the server never
+    reclassifies tool names between the two categories.
+    """
+    conn = get_conn()
+    _cols = [
+        ("builtin", "builtin_tool_counts"),
+        ("user", "user_tool_counts"),
+        ("skills", "skill_counts"),
+        ("mcp_servers", "mcp_server_counts"),
+        ("subagents", "subagent_counts"),
+        ("slash_commands", "slash_command_counts"),
     ]
+    return {
+        key: [
+            {"tool": t, "count": c}
+            for t, c in _aggregate_json_column(conn, col).most_common(limit)
+        ]
+        for key, col in _cols
+    }
 
 
 def sessions_list(active: bool = False, limit: int = 100, live_window: int = 120) -> list[dict]:

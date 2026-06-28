@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 
 def test_overview_totals(client, payload, auth_headers, logged_in):
     client.post("/ingest", json=payload, headers=auth_headers)
@@ -68,3 +70,155 @@ def test_timeseries_buckets(client, payload, auth_headers, logged_in):
     assert len(ts) == 2  # sessions started at 08:00 and 09:30 -> 2 hour buckets
     total = sum(b["cost"] for b in ts)
     assert abs(total - 1.7345) < 1e-6
+
+
+# --- technologies_breakdown -------------------------------------------------
+
+
+def test_technologies_breakdown_function(client, payload, auth_headers):
+    """technologies_breakdown() aggregates language_counts + framework_counts."""
+    from app import metrics
+
+    client.post("/ingest", json=payload, headers=auth_headers)
+    result = metrics.technologies_breakdown()
+
+    # sess-1 has language_counts {"python": 8, "typescript": 3}
+    # sess-2 has no language_counts (defaults to {}), so only sess-1 contributes
+    langs = {item["language"]: item["count"] for item in result["languages"]}
+    assert langs["python"] == 8
+    assert langs["typescript"] == 3
+
+    # sess-1 has framework_counts {"fastapi": 4, "react": 2}
+    fws = {item["framework"]: item["count"] for item in result["frameworks"]}
+    assert fws["fastapi"] == 4
+    assert fws["react"] == 2
+
+
+def test_technologies_breakdown_route(client, payload, auth_headers, logged_in):
+    """GET /api/technologies returns the correct structure and values."""
+    client.post("/ingest", json=payload, headers=auth_headers)
+    resp = logged_in.get("/api/technologies")
+    assert resp.status_code == 200
+    result = resp.json()
+    assert "languages" in result
+    assert "frameworks" in result
+
+    langs = {item["language"]: item["count"] for item in result["languages"]}
+    fws = {item["framework"]: item["count"] for item in result["frameworks"]}
+    assert langs["python"] == 8
+    assert fws["fastapi"] == 4
+
+
+def test_technologies_breakdown_requires_auth(client, payload, auth_headers):
+    """GET /api/technologies must reject unauthenticated requests."""
+    client.post("/ingest", json=payload, headers=auth_headers)
+    resp = client.get("/api/technologies")
+    assert resp.status_code in (401, 403)
+
+
+def test_technologies_breakdown_robust_to_corrupt_json(client, payload, auth_headers):
+    """A session with invalid JSON in language_counts must not break the aggregate."""
+    from app import metrics
+    from app.db import get_conn
+
+    client.post("/ingest", json=payload, headers=auth_headers)
+    # Corrupt one session's language_counts directly in the DB
+    conn = get_conn()
+    conn.execute(
+        "UPDATE session SET language_counts = ? WHERE session_id = 'sess-2'",
+        ("INVALID_JSON",),
+    )
+    conn.commit()
+
+    result = metrics.technologies_breakdown()
+    langs = {item["language"]: item["count"] for item in result["languages"]}
+    # sess-1 still contributes; sess-2 is silently skipped
+    assert langs["python"] == 8
+    assert langs["typescript"] == 3
+
+
+# --- tooling_breakdown -------------------------------------------------------
+
+
+def test_tooling_breakdown_function(client, payload, auth_headers):
+    """tooling_breakdown() aggregates all six tool-category columns correctly."""
+    from app import metrics
+
+    client.post("/ingest", json=payload, headers=auth_headers)
+    result = metrics.tooling_breakdown()
+
+    # All six keys must be present
+    for key in ("builtin", "user", "skills", "mcp_servers", "subagents", "slash_commands"):
+        assert key in result, f"missing key: {key}"
+
+    # builtin: {"Read": 10, "Edit": 5, "Bash": 3} from sess-1
+    builtin = {item["tool"]: item["count"] for item in result["builtin"]}
+    assert builtin["Read"] == 10
+    assert builtin["Edit"] == 5
+    assert builtin["Bash"] == 3
+
+    # user: {"my-custom-tool": 1} from sess-1
+    user = {item["tool"]: item["count"] for item in result["user"]}
+    assert user["my-custom-tool"] == 1
+
+    # skills: {"deploy-nas": 2, "frontend-design": 1} from sess-1
+    skills = {item["tool"]: item["count"] for item in result["skills"]}
+    assert skills["deploy-nas"] == 2
+    assert skills["frontend-design"] == 1
+
+    # mcp_servers: {"filesystem": 5, "github": 2} from sess-1
+    mcp = {item["tool"]: item["count"] for item in result["mcp_servers"]}
+    assert mcp["filesystem"] == 5
+    assert mcp["github"] == 2
+
+    # subagents: {"general-purpose": 3, "Explore": 1} from sess-1
+    subagents = {item["tool"]: item["count"] for item in result["subagents"]}
+    assert subagents["general-purpose"] == 3
+    assert subagents["Explore"] == 1
+
+    # slash_commands: {"review": 2, "deploy": 1} from sess-1
+    slash = {item["tool"]: item["count"] for item in result["slash_commands"]}
+    assert slash["review"] == 2
+    assert slash["deploy"] == 1
+
+
+def test_tooling_breakdown_builtin_user_distinct(client, payload, auth_headers):
+    """builtin and user tool lists are kept strictly separate (server never reclassifies)."""
+    from app import metrics
+
+    client.post("/ingest", json=payload, headers=auth_headers)
+    result = metrics.tooling_breakdown()
+
+    builtin_names = {item["tool"] for item in result["builtin"]}
+    user_names = {item["tool"] for item in result["user"]}
+
+    # "my-custom-tool" is user-only; standard tools (Read, Edit, Bash) are builtin-only
+    assert "my-custom-tool" not in builtin_names
+    assert "Read" not in user_names
+    assert builtin_names.isdisjoint(user_names), (
+        f"builtin/user overlap detected: {builtin_names & user_names}"
+    )
+
+
+def test_tooling_breakdown_route(client, payload, auth_headers, logged_in):
+    """GET /api/tooling returns the correct structure."""
+    client.post("/ingest", json=payload, headers=auth_headers)
+    resp = logged_in.get("/api/tooling")
+    assert resp.status_code == 200
+    result = resp.json()
+
+    for key in ("builtin", "user", "skills", "mcp_servers", "subagents", "slash_commands"):
+        assert key in result
+        assert isinstance(result[key], list)
+
+    builtin = {item["tool"]: item["count"] for item in result["builtin"]}
+    assert builtin["Read"] == 10
+    user = {item["tool"]: item["count"] for item in result["user"]}
+    assert user["my-custom-tool"] == 1
+
+
+def test_tooling_breakdown_requires_auth(client, payload, auth_headers):
+    """GET /api/tooling must reject unauthenticated requests."""
+    client.post("/ingest", json=payload, headers=auth_headers)
+    resp = client.get("/api/tooling")
+    assert resp.status_code in (401, 403)
