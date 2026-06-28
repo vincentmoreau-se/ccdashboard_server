@@ -35,6 +35,8 @@ export const api = {
     req<TeamRow[]>(`/api/leaderboard/teams?sort=${sort}`),
   participants: (sort: SortBy = "cost") =>
     req<ParticipantRow[]>(`/api/leaderboard/participants?sort=${sort}`),
+  locations: (sort: SortBy = "cost") =>
+    req<LocationRow[]>(`/api/leaderboard/locations?sort=${sort}`),
   team: (id: string) => req<TeamDetail>(`/api/teams/${encodeURIComponent(id)}`),
   models: () => req<ModelRow[]>("/api/models"),
   providers: () => req<ProviderRow[]>("/api/providers"),
@@ -79,6 +81,19 @@ export interface TeamRow {
   rank: number;
   team_id: string;
   localisation: string;
+  participant_count: number;
+  session_count: number;
+  tokens: number;
+  cost: number;
+  volume: number;
+  eval_score: number | null;
+  cache_efficiency: number;
+}
+
+export interface LocationRow {
+  rank: number;
+  localisation: string;
+  team_count: number;
   participant_count: number;
   session_count: number;
   tokens: number;

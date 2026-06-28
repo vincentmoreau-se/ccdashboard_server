@@ -170,6 +170,60 @@ def leaderboard_teams(sort: str = "cost") -> list[dict]:
     return _sorted_with_rank(out, sort)
 
 
+def leaderboard_locations(sort: str = "cost") -> list[dict]:
+    conn = get_conn()
+    rows = conn.execute(
+        f"""
+        SELECT {LOC_EXPR}  AS localisation,
+               COUNT(DISTINCT {TEAM_EXPR}) AS team_count,
+               COUNT(DISTINCT s.user_id) AS participant_count,
+               COUNT(*) AS session_count,
+               COALESCE(SUM({TOKENS_SQL}), 0) AS tokens,
+               COALESCE(SUM(s.cost), 0.0) AS cost,
+               COALESCE(SUM(s.lines_generated), 0) AS volume,
+               COALESCE(SUM(s.cache_read), 0) AS cache_read,
+               COALESCE(SUM(s.cache_write_5m + s.cache_write_1h), 0) AS cache_write
+        FROM session s
+        LEFT JOIN participant p ON p.user_id = s.user_id
+        GROUP BY localisation
+        """
+    ).fetchall()
+    # Location evaluation = average of its members' latest scores, joined to a
+    # localisation via the participant CSV (separate query to avoid inflating the
+    # score by each member's session count in the GROUP BY above).
+    eval_rows = conn.execute(
+        """
+        SELECT COALESCE(p.localisation, 'UNKNOWN') AS localisation, AVG(e.score) AS eval_score
+        FROM evaluation e
+        LEFT JOIN participant p ON p.user_id = e.user_id
+        GROUP BY localisation
+        """
+    ).fetchall()
+    eval_by_loc = {r["localisation"]: r["eval_score"] for r in eval_rows}
+
+    out = []
+    for r in rows:
+        cache_total = r["cache_read"] + r["cache_write"]
+        eval_score = eval_by_loc.get(r["localisation"])
+        out.append(
+            {
+                "localisation": r["localisation"],
+                "team_count": r["team_count"],
+                "participant_count": r["participant_count"],
+                "session_count": r["session_count"],
+                "tokens": r["tokens"],
+                "cost": round(r["cost"], 4),
+                "volume": r["volume"],
+                "eval_score": round(eval_score, 1) if eval_score is not None else None,
+                "_sort_eval": eval_score,
+                "cache_efficiency": round(
+                    (r["cache_read"] / cache_total) if cache_total else 0.0, 4
+                ),
+            }
+        )
+    return _sorted_with_rank(out, sort)
+
+
 def leaderboard_participants(sort: str = "cost") -> list[dict]:
     conn = get_conn()
     rows = conn.execute(

@@ -88,6 +88,11 @@ def leaderboard_participants(sort: str = "cost") -> list[dict]:
     return metrics.leaderboard_participants(_norm_sort(sort))
 
 
+@router.get("/api/leaderboard/locations", dependencies=[Depends(require_dashboard)])
+def leaderboard_locations(sort: str = "cost") -> list[dict]:
+    return metrics.leaderboard_locations(_norm_sort(sort))
+
+
 @router.get("/api/teams/{team_id}", dependencies=[Depends(require_dashboard)])
 def team_detail(team_id: str) -> dict:
     return metrics.team_detail(team_id)
