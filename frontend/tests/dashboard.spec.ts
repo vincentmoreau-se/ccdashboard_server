@@ -1,13 +1,5 @@
-import { test, expect, Page } from "@playwright/test";
-
-const PASSWORD = process.env.CCSRV_DASHBOARD_PASSWORD ?? "change-me";
-
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.getByPlaceholder("••••••••••").fill(PASSWORD);
-  await page.getByRole("button", { name: /ENTRER/ }).click();
-  await expect(page).toHaveURL("http://localhost:5180/");
-}
+import { test, expect } from "@playwright/test";
+import { login } from "./helpers";
 
 test("war-room renders KPI gauges with live data", async ({ page }) => {
   await login(page);

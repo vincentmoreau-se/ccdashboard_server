@@ -14,6 +14,11 @@ import { api } from "../api/client";
 import { Gauge, Panel } from "../components/hud";
 
 const PALETTE = ["#ffb000", "#36e0e0", "#9be34a", "#ff5d62", "#8595a8", "#c792ea"];
+const CYAN = "#36e0e0";
+const AMBER = "#ffb000";
+
+// Defensive: keep "top N" honest even if the backend changes its ordering.
+const byCount = (a: { count: number }, b: { count: number }) => b.count - a.count;
 
 export default function TechTooling() {
   const opts = { refetchInterval: 30000 };
@@ -37,10 +42,10 @@ export default function TechTooling() {
   const td = tech.data!;
   const tl = tooling.data!;
 
-  const langs = td.languages.slice(0, 8);
-  const frameworks = td.frameworks.slice(0, 10);
-  const builtin = tl.builtin.slice(0, 10);
-  const userTools = tl.user.slice(0, 10);
+  const langs = [...td.languages].sort(byCount).slice(0, 8);
+  const frameworks = [...td.frameworks].sort(byCount).slice(0, 10);
+  const builtin = [...tl.builtin].sort(byCount).slice(0, 10);
+  const userTools = [...tl.user].sort(byCount).slice(0, 10);
 
   return (
     <div className="space-y-5">
@@ -202,10 +207,10 @@ export default function TechTooling() {
                     tick={{ fill: "#e6edf3", fontSize: 11, fontFamily: "IBM Plex Mono" }}
                     stroke="#2a3543"
                   />
-                  <Tooltip cursor={{ fill: "#11161f" }} content={<ToolBarTip />} />
+                  <Tooltip cursor={{ fill: "#11161f" }} content={<ToolBarTip color={CYAN} />} />
                   <Bar
                     dataKey="count"
-                    fill="#36e0e0"
+                    fill={CYAN}
                     radius={[0, 2, 2, 0]}
                     isAnimationActive={false}
                   />
@@ -238,10 +243,10 @@ export default function TechTooling() {
                     tick={{ fill: "#e6edf3", fontSize: 11, fontFamily: "IBM Plex Mono" }}
                     stroke="#2a3543"
                   />
-                  <Tooltip cursor={{ fill: "#11161f" }} content={<ToolBarTip />} />
+                  <Tooltip cursor={{ fill: "#11161f" }} content={<ToolBarTip color={AMBER} />} />
                   <Bar
                     dataKey="count"
-                    fill="#ffb000"
+                    fill={AMBER}
                     radius={[0, 2, 2, 0]}
                     isAnimationActive={false}
                   />
@@ -254,15 +259,10 @@ export default function TechTooling() {
 
       {/* Skills / MCP Servers / Subagents / Slash commands */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <MiniChart label="Skills" data={tl.skills} barColor="#36e0e0" accent="cyan" />
-        <MiniChart label="Serveurs MCP" data={tl.mcp_servers} barColor="#ffb000" accent="amber" />
-        <MiniChart label="Sous-agents" data={tl.subagents} barColor="#9be34a" accent="cyan" />
-        <MiniChart
-          label="Slash commands"
-          data={tl.slash_commands}
-          barColor="#c792ea"
-          accent="amber"
-        />
+        <MiniChart label="Skills" data={tl.skills} accent="cyan" />
+        <MiniChart label="Serveurs MCP" data={tl.mcp_servers} accent="amber" />
+        <MiniChart label="Sous-agents" data={tl.subagents} accent="cyan" />
+        <MiniChart label="Slash commands" data={tl.slash_commands} accent="amber" />
       </div>
     </div>
   );
@@ -281,14 +281,14 @@ function Empty() {
 function MiniChart({
   label,
   data,
-  barColor,
   accent,
 }: {
   label: string;
   data: { tool: string; count: number }[];
-  barColor: string;
   accent: "amber" | "cyan";
 }) {
+  // Bar color matches the panel accent so header and bars stay consistent.
+  const barColor = accent === "cyan" ? CYAN : AMBER;
   return (
     <Panel label={label} accent={accent}>
       {data.length === 0 ? (
@@ -297,7 +297,7 @@ function MiniChart({
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={data.slice(0, 8)}
+              data={[...data].sort(byCount).slice(0, 8)}
               layout="vertical"
               margin={{ top: 0, right: 8, left: 4, bottom: 0 }}
             >
@@ -313,7 +313,7 @@ function MiniChart({
                 tick={{ fill: "#e6edf3", fontSize: 10, fontFamily: "IBM Plex Mono" }}
                 stroke="#2a3543"
               />
-              <Tooltip cursor={{ fill: "#11161f" }} content={<ToolBarTip />} />
+              <Tooltip cursor={{ fill: "#11161f" }} content={<ToolBarTip color={barColor} />} />
               <Bar dataKey="count" fill={barColor} radius={[0, 2, 2, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
@@ -353,11 +353,11 @@ function FrameworkTip({ active, payload }: any) {
   );
 }
 
-function ToolBarTip({ active, payload }: any) {
+function ToolBarTip({ active, payload, color }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return box(
-    <span className="text-cyan">
+    <span style={{ color: color ?? "#36e0e0" }}>
       {d.tool}: <span className="tnum">{d.count}</span>
     </span>,
   );

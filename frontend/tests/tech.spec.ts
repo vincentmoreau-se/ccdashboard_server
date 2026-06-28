@@ -1,13 +1,5 @@
-import { test, expect, Page } from "@playwright/test";
-
-const PASSWORD = process.env.CCSRV_DASHBOARD_PASSWORD ?? "change-me";
-
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.getByPlaceholder("••••••••••").fill(PASSWORD);
-  await page.getByRole("button", { name: /ENTRER/ }).click();
-  await expect(page).toHaveURL("http://localhost:5180/");
-}
+import { test, expect } from "@playwright/test";
+import { login } from "./helpers";
 
 test("tech-tooling page is accessible from nav", async ({ page }) => {
   await login(page);
@@ -19,11 +11,13 @@ test("tech-tooling page renders title and KPI gauges", async ({ page }) => {
   await login(page);
   await page.goto("/tech");
   await expect(page.getByText("Technologies & outils")).toBeVisible();
-  // KPI gauge labels
-  await expect(page.getByText("Langages")).toBeVisible();
-  await expect(page.getByText("Frameworks")).toBeVisible();
-  await expect(page.getByText("Outils intégrés")).toBeVisible();
-  await expect(page.getByText("Outils utilisateur")).toBeVisible();
+  // All six KPI gauge labels (use .first() — some labels are reused as panel titles).
+  await expect(page.getByText("Langages").first()).toBeVisible();
+  await expect(page.getByText("Frameworks").first()).toBeVisible();
+  await expect(page.getByText("Outils intégrés").first()).toBeVisible();
+  await expect(page.getByText("Outils utilisateur").first()).toBeVisible();
+  await expect(page.getByText("Skills").first()).toBeVisible();
+  await expect(page.getByText("Serveurs MCP").first()).toBeVisible();
 });
 
 test("tech-tooling page renders chart panels with recharts SVGs or empty state", async ({
