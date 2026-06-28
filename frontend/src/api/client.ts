@@ -41,6 +41,8 @@ export const api = {
   models: () => req<ModelRow[]>("/api/models"),
   providers: () => req<ProviderRow[]>("/api/providers"),
   tools: () => req<ToolRow[]>("/api/tools"),
+  technologies: () => req<TechBreakdown>("/api/technologies"),
+  tooling: () => req<ToolingBreakdown>("/api/tooling"),
   sessions: (active = false, limit = 100) =>
     req<SessionRow[]>(`/api/sessions?active=${active}&limit=${limit}`),
   liveSnapshot: () => req<LiveSnapshot>("/api/live/snapshot"),
@@ -133,6 +135,20 @@ export interface ProviderRow {
 export interface ToolRow {
   tool: string;
   count: number;
+}
+
+export interface TechBreakdown {
+  languages: { language: string; count: number }[];
+  frameworks: { framework: string; count: number }[];
+}
+
+export interface ToolingBreakdown {
+  builtin: ToolRow[];
+  user: ToolRow[];
+  skills: ToolRow[];
+  mcp_servers: ToolRow[];
+  subagents: ToolRow[];
+  slash_commands: ToolRow[];
 }
 
 export interface SessionRow {

@@ -7,6 +7,7 @@ import WarRoom from "./pages/WarRoom";
 import LeaderboardPage from "./pages/Leaderboard";
 import History from "./pages/History";
 import TeamDetail from "./pages/TeamDetail";
+import TechTooling from "./pages/TechTooling";
 
 function useAuth() {
   return useQuery({ queryKey: ["me"], queryFn: api.me });
@@ -28,6 +29,7 @@ const NAV = [
   { to: "/", label: "FLIGHT DECK", end: true },
   { to: "/leaderboard", label: "CLASSEMENT" },
   { to: "/history", label: "HISTORIQUE" },
+  { to: "/tech", label: "TECHNOLOGIES" },
 ];
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -101,6 +103,7 @@ export default function App() {
                   <Route path="/" element={<WarRoom />} />
                   <Route path="/leaderboard" element={<LeaderboardPage />} />
                   <Route path="/history" element={<History />} />
+                  <Route path="/tech" element={<TechTooling />} />
                   <Route path="/teams/:teamId" element={<TeamDetail />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
