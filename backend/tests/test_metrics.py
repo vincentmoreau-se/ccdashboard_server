@@ -6,9 +6,9 @@ def test_overview_totals(client, payload, auth_headers, logged_in):
     ov = logged_in.get("/api/overview").json()
     assert ov["session_count"] == 2
     assert ov["participant_count"] == 1
-    # tokens = sum of input+output+cache for both sessions
-    # sess-1: 12000+8000+3000+0+50000 = 73000 ; sess-2: 5000+3000+1000+0+10000 = 19000
-    assert ov["total_tokens"] == 92000
+    # tokens = sum of input+output for both sessions (cache surfaced separately)
+    # sess-1: 12000+8000 = 20000 ; sess-2: 5000+3000 = 8000
+    assert ov["total_tokens"] == 28000
     assert ov["input_tokens"] == 17000
     assert ov["cache_read_tokens"] == 60000
     assert abs(ov["total_cost"] - 1.7345) < 1e-6

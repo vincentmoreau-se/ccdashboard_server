@@ -6,11 +6,10 @@ from datetime import datetime, timedelta, timezone
 
 from app.db import get_conn
 
-# "tokens" everywhere = input + output + all cache tokens. cache_read dominates,
-# so input/output are also surfaced separately in detail views.
-TOKENS_SQL = (
-    "(in_tokens + out_tokens + cache_write_5m + cache_write_1h + cache_read)"
-)
+# "tokens" everywhere = input + output (generated/consumed tokens), matching the
+# local ccdashboard headline. Cache tokens (cache_read dominates, ~100x) are NOT
+# counted here — they're surfaced separately as cache_efficiency / cache_* fields.
+TOKENS_SQL = "(in_tokens + out_tokens)"
 
 # A session is "live" if the server saw it recently AND the client flagged it
 # active. is_active alone is unreliable (a dead client leaves it stuck at 1).
@@ -383,10 +382,7 @@ def _session_brief(r) -> dict:
         "is_active": bool(r["is_active"]),
         "message_count": r["message_count"],
         "duration_seconds": r["duration_seconds"],
-        "tokens": (
-            r["in_tokens"] + r["out_tokens"] + r["cache_write_5m"]
-            + r["cache_write_1h"] + r["cache_read"]
-        ),
+        "tokens": r["in_tokens"] + r["out_tokens"],
         "cost": round(r["cost"], 4),
         "started_at": r["started_at"],
         "ended_at": r["ended_at"],
