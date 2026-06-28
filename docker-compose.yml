@@ -1,0 +1,28 @@
+# Target an old docker-compose standalone (v1.22) -> keep the format <= 3.7
+version: "3.7"
+
+services:
+  ccdash:
+    build:
+      context: .
+      args:
+        VITE_BASE: /ccdash/
+        VITE_API_BASE: /ccdash
+    image: ccdash
+    container_name: ccdash          # nginx proxies to this name over the msf network
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/data                              # persistent SQLite db
+      - ./participants.csv:/app/participants.csv:ro
+    networks:
+      - msf
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  msf:
+    external: true

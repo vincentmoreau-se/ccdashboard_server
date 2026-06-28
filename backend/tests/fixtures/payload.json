@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "source": {
+    "machine_id": "laptop-01",
+    "user_id": "alice@example.com",
+    "instance_id": "default"
+  },
+  "sent_at": "2026-06-28T10:00:00+00:00",
+  "sessions": [
+    {
+      "session_id": "sess-1",
+      "project": "rocket-launcher",
+      "cwd": "/home/alice/rocket-launcher",
+      "file_path": "/home/alice/.claude/projects/rocket-launcher/sess-1.jsonl",
+      "ai_title": null,
+      "started_at": "2026-06-28T09:30:00+00:00",
+      "ended_at": "2026-06-28T09:55:00+00:00",
+      "duration_seconds": 1500.0,
+      "is_active": true,
+      "models": ["claude-opus-4-8"],
+      "provider": "anthropic",
+      "git_branch": null,
+      "cc_version": null,
+      "message_count": 42,
+      "usage": {
+        "input": 12000,
+        "output": 8000,
+        "cache_write_5m": 3000,
+        "cache_write_1h": 0,
+        "cache_read": 50000,
+        "web_search": 2,
+        "web_fetch": 1
+      },
+      "cost": 1.2345,
+      "cost_known": true,
+      "tool_counts": {"Read": 10, "Edit": 5, "Bash": 3},
+      "skipped_lines": 0
+    },
+    {
+      "session_id": "sess-2",
+      "project": "data-pipeline",
+      "cwd": "/home/alice/data-pipeline",
+      "file_path": "/home/alice/.claude/projects/data-pipeline/sess-2.jsonl",
+      "ai_title": null,
+      "started_at": "2026-06-28T08:00:00+00:00",
+      "ended_at": "2026-06-28T08:20:00+00:00",
+      "duration_seconds": 1200.0,
+      "is_active": false,
+      "models": ["claude-sonnet-4-6"],
+      "provider": "anthropic",
+      "git_branch": null,
+      "cc_version": null,
+      "message_count": 20,
+      "usage": {
+        "input": 5000,
+        "output": 3000,
+        "cache_write_5m": 1000,
+        "cache_write_1h": 0,
+        "cache_read": 10000,
+        "web_search": 0,
+        "web_fetch": 0
+      },
+      "cost": 0.5,
+      "cost_known": true,
+      "tool_counts": {"Read": 4, "Grep": 2},
+      "skipped_lines": 0
+    }
+  ],
+  "projects": []
+}

@@ -1,0 +1,33 @@
+# --- Secrets & deployment-local data (never commit) ---
+.env
+.env.*
+!.env.example
+!.env.deploy.example
+*.local
+*.local.md
+
+# --- Data / DB ---
+data/
+*.db
+*.db-shm
+*.db-wal
+backend/participants.csv
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# --- Node / frontend build ---
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+test-results/
+playwright-report/
+
+# --- Misc ---
+.DS_Store

@@ -1,0 +1,26 @@
+# Python
+backend/.venv/
+**/__pycache__/
+**/*.pyc
+backend/.pytest_cache/
+backend/tests/
+backend/shots/
+
+# Local data (never bake secrets/db into the image)
+backend/.env
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+data/
+.env
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+frontend/shots/
+
+# Misc
+.git/
+**/.DS_Store

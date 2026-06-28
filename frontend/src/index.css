@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #07090d;
+  color: #e6edf3;
+  font-family: "IBM Plex Mono", monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* tabular figures everywhere so live values don't jitter as digits change */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Atmospheric flight-deck background: faint grid + radial vignette + scanlines */
+.deck-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, rgba(255, 176, 0, 0.06), transparent 60%),
+    radial-gradient(ellipse 100% 100% at 80% 110%, rgba(54, 224, 224, 0.05), transparent 55%),
+    linear-gradient(rgba(27, 35, 48, 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(27, 35, 48, 0.5) 1px, transparent 1px),
+    #07090d;
+  background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+}
+
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.18) 3px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+/* corner ticks for the HUD panel frame */
+.hud-frame {
+  position: relative;
+  border: 1px solid var(--tw-edge, #2a3543);
+}
+.hud-frame::before,
+.hud-frame::after {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-color: #ffb000;
+}
+.hud-frame::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1.5px solid;
+  border-left: 1.5px solid;
+}
+.hud-frame::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1.5px solid;
+  border-right: 1.5px solid;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3543;
+  border: 2px solid #0d1117;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a4757;
+}
