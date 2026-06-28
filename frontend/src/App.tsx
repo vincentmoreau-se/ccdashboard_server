@@ -1,7 +1,7 @@
 import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api/client";
-import { DeckBackground } from "./components/hud";
+import { BootOverlay, DeckBackground } from "./components/hud";
 import Login from "./pages/Login";
 import WarRoom from "./pages/WarRoom";
 import LeaderboardPage from "./pages/Leaderboard";
@@ -47,8 +47,8 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="relative z-10 mx-auto flex min-h-screen max-w-[1500px] flex-col px-5 py-5">
       <header className="mb-5 flex items-center justify-between border-b border-grid pb-4">
         <div className="flex items-baseline gap-4">
-          <span className="font-display text-xl font-700 tracking-[0.2em] text-bone">
-            CC<span className="text-amber">DASH</span>
+          <span className="animate-flicker font-display text-xl font-700 tracking-[0.2em] text-bone">
+            CC<span className="text-brand">DASH</span>
           </span>
           <span className="hidden font-mono text-[11px] uppercase tracking-[0.3em] text-haze sm:inline">
             ▏ {config?.event_name ?? "Hackathon"} ▏ centre de contrôle
@@ -63,7 +63,7 @@ function Shell({ children }: { children: React.ReactNode }) {
               className={({ isActive }) =>
                 `px-3 py-1.5 font-display text-[11px] font-600 tracking-[0.2em] transition ${
                   isActive
-                    ? "bg-amber/10 text-amber shadow-glow"
+                    ? "animate-glow-pulse bg-brand/10 text-brand"
                     : "text-ash hover:text-bone"
                 }`
               }
@@ -73,7 +73,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           ))}
           <button
             onClick={logout}
-            className="ml-2 px-3 py-1.5 font-display text-[11px] font-600 tracking-[0.2em] text-haze hover:text-rose"
+            className="ml-2 px-3 py-1.5 font-display text-[11px] font-600 tracking-[0.2em] text-haze hover:text-alert"
           >
             DÉCONNEXION
           </button>
@@ -92,6 +92,7 @@ export default function App() {
   return (
     <>
       <DeckBackground />
+      <BootOverlay />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route

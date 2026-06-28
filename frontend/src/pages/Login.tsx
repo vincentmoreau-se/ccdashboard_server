@@ -37,14 +37,14 @@ export default function Login() {
         className="hud-frame w-full max-w-md bg-panel/80 p-8 shadow-panel"
       >
         <div className="mb-1 font-display text-2xl font-700 tracking-[0.18em] text-bone">
-          CC<span className="text-amber">DASH</span>{" "}
+          CC<span className="text-brand">DASH</span>{" "}
           <span className="text-haze">▏</span> ACCÈS
         </div>
         <p className="mb-7 font-mono text-[11px] uppercase tracking-[0.28em] text-haze">
           centre de contrôle — authentification requise
         </p>
 
-        <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.28em] text-cyan">
+        <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.28em] text-deep">
           Code d'accès
         </label>
         <input
@@ -52,7 +52,7 @@ export default function Login() {
           autoFocus
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full bg-void/80 px-4 py-3 font-mono text-bone outline-none ring-1 ring-edge transition focus:ring-amber"
+          className="w-full bg-void/80 px-4 py-3 font-mono text-bone outline-none ring-1 ring-edge transition focus:ring-brand"
           placeholder="••••••••••"
         />
 
@@ -60,7 +60,7 @@ export default function Login() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mt-3 font-mono text-[11px] tracking-[0.2em] text-rose"
+            className="mt-3 font-mono text-[11px] tracking-[0.2em] text-alert"
           >
             ⚠ {error}
           </motion.div>
@@ -69,7 +69,7 @@ export default function Login() {
         <button
           type="submit"
           disabled={busy || !password}
-          className="mt-7 w-full bg-amber px-4 py-3 font-display text-sm font-700 uppercase tracking-[0.25em] text-void transition hover:bg-amber/90 disabled:opacity-40"
+          className="mt-7 w-full bg-brand px-4 py-3 font-display text-sm font-700 uppercase tracking-[0.25em] text-void transition hover:bg-brand/90 disabled:opacity-40"
         >
           {busy ? "VÉRIFICATION…" : "ENTRER ►"}
         </button>
