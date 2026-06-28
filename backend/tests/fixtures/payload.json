@@ -34,7 +34,15 @@
       "cost": 1.2345,
       "cost_known": true,
       "tool_counts": {"Read": 10, "Edit": 5, "Bash": 3},
-      "skipped_lines": 0
+      "skipped_lines": 0,
+      "language_counts": {"python": 8, "typescript": 3},
+      "framework_counts": {"fastapi": 4, "react": 2},
+      "builtin_tool_counts": {"Read": 10, "Edit": 5, "Bash": 3},
+      "user_tool_counts": {"my-custom-tool": 1},
+      "skill_counts": {"deploy-nas": 2, "frontend-design": 1},
+      "mcp_server_counts": {"filesystem": 5, "github": 2},
+      "subagent_counts": {"general-purpose": 3, "Explore": 1},
+      "slash_command_counts": {"review": 2, "deploy": 1}
     },
     {
       "session_id": "sess-2",

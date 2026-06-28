@@ -51,6 +51,14 @@ CREATE TABLE IF NOT EXISTS session (
     tool_counts       TEXT NOT NULL DEFAULT '{}',
     skipped_lines     INTEGER NOT NULL DEFAULT 0,
     lines_generated   INTEGER NOT NULL DEFAULT 0,
+    language_counts   TEXT NOT NULL DEFAULT '{}',
+    framework_counts  TEXT NOT NULL DEFAULT '{}',
+    builtin_tool_counts  TEXT NOT NULL DEFAULT '{}',
+    user_tool_counts  TEXT NOT NULL DEFAULT '{}',
+    skill_counts      TEXT NOT NULL DEFAULT '{}',
+    mcp_server_counts TEXT NOT NULL DEFAULT '{}',
+    subagent_counts   TEXT NOT NULL DEFAULT '{}',
+    slash_command_counts TEXT NOT NULL DEFAULT '{}',
     server_updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_session_user    ON session(user_id);
@@ -114,6 +122,14 @@ def init_db(db_path: str) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(SCHEMA)
     _ensure_column(conn, "session", "lines_generated", "INTEGER NOT NULL DEFAULT 0")
+    _ensure_column(conn, "session", "language_counts", "TEXT NOT NULL DEFAULT '{}'")
+    _ensure_column(conn, "session", "framework_counts", "TEXT NOT NULL DEFAULT '{}'")
+    _ensure_column(conn, "session", "builtin_tool_counts", "TEXT NOT NULL DEFAULT '{}'")
+    _ensure_column(conn, "session", "user_tool_counts", "TEXT NOT NULL DEFAULT '{}'")
+    _ensure_column(conn, "session", "skill_counts", "TEXT NOT NULL DEFAULT '{}'")
+    _ensure_column(conn, "session", "mcp_server_counts", "TEXT NOT NULL DEFAULT '{}'")
+    _ensure_column(conn, "session", "subagent_counts", "TEXT NOT NULL DEFAULT '{}'")
+    _ensure_column(conn, "session", "slash_command_counts", "TEXT NOT NULL DEFAULT '{}'")
     conn.commit()
     _conn = conn
     return conn

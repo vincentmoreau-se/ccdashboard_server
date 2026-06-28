@@ -43,6 +43,14 @@ class SessionIn(BaseModel):
     tool_counts: dict[str, int] = Field(default_factory=dict)
     skipped_lines: int = 0
     lines_generated: int = 0
+    language_counts: dict[str, int] = Field(default_factory=dict)
+    framework_counts: dict[str, int] = Field(default_factory=dict)
+    builtin_tool_counts: dict[str, int] = Field(default_factory=dict)
+    user_tool_counts: dict[str, int] = Field(default_factory=dict)
+    skill_counts: dict[str, int] = Field(default_factory=dict)
+    mcp_server_counts: dict[str, int] = Field(default_factory=dict)
+    subagent_counts: dict[str, int] = Field(default_factory=dict)
+    slash_command_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class IngestSource(BaseModel):

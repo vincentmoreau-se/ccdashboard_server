@@ -23,14 +23,18 @@ INSERT INTO session (
     is_active, provider, models, message_count,
     in_tokens, out_tokens, cache_write_5m, cache_write_1h, cache_read,
     web_search, web_fetch, cost, cost_known, tool_counts, skipped_lines,
-    lines_generated, server_updated_at
+    lines_generated, language_counts, framework_counts, builtin_tool_counts,
+    user_tool_counts, skill_counts, mcp_server_counts, subagent_counts,
+    slash_command_counts, server_updated_at
 ) VALUES (
     :session_uid, :source_key, :user_id, :session_id, :project, :cwd, :file_path,
     :ai_title, :git_branch, :cc_version, :started_at, :ended_at, :duration_seconds,
     :is_active, :provider, :models, :message_count,
     :in_tokens, :out_tokens, :cache_write_5m, :cache_write_1h, :cache_read,
     :web_search, :web_fetch, :cost, :cost_known, :tool_counts, :skipped_lines,
-    :lines_generated, :server_updated_at
+    :lines_generated, :language_counts, :framework_counts, :builtin_tool_counts,
+    :user_tool_counts, :skill_counts, :mcp_server_counts, :subagent_counts,
+    :slash_command_counts, :server_updated_at
 )
 ON CONFLICT(session_uid) DO UPDATE SET
     source_key=excluded.source_key,
@@ -60,6 +64,14 @@ ON CONFLICT(session_uid) DO UPDATE SET
     tool_counts=excluded.tool_counts,
     skipped_lines=excluded.skipped_lines,
     lines_generated=excluded.lines_generated,
+    language_counts=excluded.language_counts,
+    framework_counts=excluded.framework_counts,
+    builtin_tool_counts=excluded.builtin_tool_counts,
+    user_tool_counts=excluded.user_tool_counts,
+    skill_counts=excluded.skill_counts,
+    mcp_server_counts=excluded.mcp_server_counts,
+    subagent_counts=excluded.subagent_counts,
+    slash_command_counts=excluded.slash_command_counts,
     server_updated_at=excluded.server_updated_at
 """
 
@@ -99,6 +111,14 @@ def _session_row(s: SessionIn, source_key: str, user_id: str, server_ts: str) ->
         "tool_counts": json.dumps(s.tool_counts),
         "skipped_lines": s.skipped_lines,
         "lines_generated": s.lines_generated,
+        "language_counts": json.dumps(s.language_counts),
+        "framework_counts": json.dumps(s.framework_counts),
+        "builtin_tool_counts": json.dumps(s.builtin_tool_counts),
+        "user_tool_counts": json.dumps(s.user_tool_counts),
+        "skill_counts": json.dumps(s.skill_counts),
+        "mcp_server_counts": json.dumps(s.mcp_server_counts),
+        "subagent_counts": json.dumps(s.subagent_counts),
+        "slash_command_counts": json.dumps(s.slash_command_counts),
         "server_updated_at": server_ts,
     }
 
