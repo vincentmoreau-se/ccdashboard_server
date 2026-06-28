@@ -41,26 +41,26 @@ export default function WarRoom() {
         <Gauge
           index={0}
           label="Sessions actives"
-          accent="lime"
+          accent="live"
           value={<CountUp value={snap?.active_sessions ?? 0} />}
         />
         <Gauge
           index={1}
           label="Participants"
-          accent="cyan"
+          accent="deep"
           value={<CountUp value={snap?.active_participants ?? 0} />}
         />
         <Gauge
           index={2}
           label="Équipes actives"
-          accent="cyan"
+          accent="deep"
           value={<CountUp value={snap?.active_teams ?? 0} />}
         />
         <Gauge
           index={3}
           label="Débit tokens"
           unit="/min"
-          accent="amber"
+          accent="brand"
           value={
             snap?.tokens_per_min == null ? (
               <span className="text-haze">···</span>
@@ -73,7 +73,7 @@ export default function WarRoom() {
           index={4}
           label="Coût horaire"
           unit={`${cur}/h`}
-          accent="rose"
+          accent="alert"
           value={
             snap?.cost_per_hour == null ? (
               <span className="text-haze">···</span>
@@ -85,7 +85,7 @@ export default function WarRoom() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <Panel label="Top équipes — maintenant" accent="amber" className="lg:col-span-2">
+        <Panel label="Top équipes — maintenant" accent="brand" className="lg:col-span-2">
           {snap && snap.top_teams.length > 0 ? (
             <div className="space-y-3">
               {snap.top_teams.map((t, i) => (
@@ -108,7 +108,7 @@ export default function WarRoom() {
                         {formatTokens(t.tokens)} tok ▏ {t.active_sessions} sess.
                       </span>
                     </div>
-                    <Bar pct={(t.tokens / maxTeamTokens) * 100} accent="amber" />
+                    <Bar pct={(t.tokens / maxTeamTokens) * 100} accent="brand" />
                   </div>
                 </motion.div>
               ))}
@@ -119,8 +119,8 @@ export default function WarRoom() {
         </Panel>
 
         <div className="space-y-5">
-          <Panel label="Tokens live (fenêtre)" accent="cyan">
-            <div className="font-display text-3xl font-700 text-cyan tnum">
+          <Panel label="Tokens live (fenêtre)" accent="deep">
+            <div className="font-display text-3xl font-700 text-deep tnum">
               <CountUp value={snap?.live_tokens ?? 0} />
             </div>
             <div className="mt-1 font-mono text-[11px] tracking-widest text-haze">
@@ -128,7 +128,7 @@ export default function WarRoom() {
             </div>
           </Panel>
 
-          <Panel label="Modèles en service" accent="amber">
+          <Panel label="Modèles en service" accent="brand">
             {snap && snap.models_in_use.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {snap.models_in_use.map((m) => (
@@ -137,7 +137,7 @@ export default function WarRoom() {
                     className="border border-edge bg-void/60 px-2.5 py-1 font-mono text-[11px] text-bone"
                   >
                     {m.model}
-                    <span className="ml-1.5 text-amber tnum">×{m.count}</span>
+                    <span className="ml-1.5 text-brand tnum">×{m.count}</span>
                   </span>
                 ))}
               </div>

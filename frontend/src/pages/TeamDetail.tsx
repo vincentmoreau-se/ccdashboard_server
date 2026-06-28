@@ -17,14 +17,14 @@ export default function TeamDetail() {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <Link to="/leaderboard" className="font-mono text-xs text-haze hover:text-amber">
+        <Link to="/leaderboard" className="font-mono text-xs text-haze hover:text-brand">
           ◄ CLASSEMENT
         </Link>
         <h1 className="font-display text-lg font-700 tracking-[0.15em] text-bone">
           {teamId}
         </h1>
         {data && (
-          <span className="font-mono text-[11px] tracking-widest text-cyan">
+          <span className="font-mono text-[11px] tracking-widest text-deep">
             ▏ {data.localisation}
           </span>
         )}
@@ -35,7 +35,7 @@ export default function TeamDetail() {
       ) : !data ? null : (
         <>
           <div className="grid gap-5 lg:grid-cols-3">
-            <Panel label="Membres" accent="cyan">
+            <Panel label="Membres" accent="deep">
               <div className="flex flex-wrap gap-2">
                 {data.participants.map((p) => (
                   <span key={p} className="border border-edge bg-void/60 px-2.5 py-1 font-mono text-[11px] text-bone">
@@ -44,24 +44,24 @@ export default function TeamDetail() {
                 ))}
               </div>
             </Panel>
-            <Panel label="Modèles utilisés" accent="amber">
+            <Panel label="Modèles utilisés" accent="brand">
               <div className="flex flex-wrap gap-2">
                 {data.models.map((m) => (
                   <span key={m.model} className="border border-edge bg-void/60 px-2.5 py-1 font-mono text-[11px] text-bone">
-                    {m.model} <span className="text-amber tnum">×{m.session_count}</span>
+                    {m.model} <span className="text-brand tnum">×{m.session_count}</span>
                   </span>
                 ))}
               </div>
             </Panel>
-            <Panel label="Volume" accent="cyan">
-              <div className="font-display text-3xl font-700 text-cyan tnum">
+            <Panel label="Volume" accent="deep">
+              <div className="font-display text-3xl font-700 text-deep tnum">
                 {data.session_count}
               </div>
               <div className="font-mono text-[11px] tracking-widest text-haze">sessions</div>
             </Panel>
           </div>
 
-          <Panel label="Sessions" accent="amber">
+          <Panel label="Sessions" accent="brand">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-grid text-left">
@@ -76,15 +76,15 @@ export default function TeamDetail() {
                 {data.sessions.map((s) => (
                   <tr key={s.session_id} className="border-b border-grid/50 hover:bg-panel-2/60">
                     <td className="py-2 font-mono text-bone">
-                      {s.is_active && <span className="mr-1.5 text-lime">●</span>}
+                      {s.is_active && <span className="mr-1.5 text-live">●</span>}
                       {s.project}
                     </td>
                     <td className="py-2 font-mono text-ash">{s.user_id}</td>
                     <td className="py-2 font-mono text-xs text-ash">{s.models.join(", ") || "—"}</td>
                     <td className="py-2 font-mono text-ash tnum">{formatDuration(s.duration_seconds)}</td>
                     <td className="py-2 font-mono text-ash tnum">{s.message_count}</td>
-                    <td className="py-2 text-right font-mono text-cyan tnum">{formatTokens(s.tokens)}</td>
-                    <td className="py-2 text-right font-mono text-amber tnum">{formatCost(s.cost, cur)}</td>
+                    <td className="py-2 text-right font-mono text-deep tnum">{formatTokens(s.tokens)}</td>
+                    <td className="py-2 text-right font-mono text-brand tnum">{formatCost(s.cost, cur)}</td>
                     <td className="py-2 text-right font-mono text-haze tnum">{formatTime(s.started_at)}</td>
                   </tr>
                 ))}

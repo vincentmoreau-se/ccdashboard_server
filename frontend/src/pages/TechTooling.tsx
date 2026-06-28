@@ -13,9 +13,9 @@ import {
 import { api } from "../api/client";
 import { Gauge, Panel } from "../components/hud";
 
-const PALETTE = ["#ffb000", "#36e0e0", "#9be34a", "#ff5d62", "#8595a8", "#c792ea"];
-const CYAN = "#36e0e0";
-const AMBER = "#ffb000";
+const PALETTE = ["#12ABDB", "#0070AD", "#00BFB3", "#7B61FF", "#4FC3F7", "#1D4F91", "#9be34a", "#ff5d62"];
+const DEEP = "#0070AD";
+const BRAND = "#12ABDB";
 
 // Defensive: keep "top N" honest even if the backend changes its ordering.
 const byCount = (a: { count: number }, b: { count: number }) => b.count - a.count;
@@ -34,7 +34,7 @@ export default function TechTooling() {
 
   if (tech.isError || tooling.isError)
     return (
-      <div className="grid h-64 place-items-center font-mono text-rose">
+      <div className="grid h-64 place-items-center font-mono text-alert">
         Erreur de chargement des données
       </div>
     );
@@ -58,44 +58,44 @@ export default function TechTooling() {
         <Gauge
           index={0}
           label="Langages"
-          accent="amber"
+          accent="brand"
           value={<span className="tnum">{td.languages.length}</span>}
         />
         <Gauge
           index={1}
           label="Frameworks"
-          accent="cyan"
+          accent="deep"
           value={<span className="tnum">{td.frameworks.length}</span>}
         />
         <Gauge
           index={2}
           label="Outils intégrés"
-          accent="lime"
+          accent="live"
           value={<span className="tnum">{tl.builtin.length}</span>}
         />
         <Gauge
           index={3}
           label="Outils utilisateur"
-          accent="amber"
+          accent="brand"
           value={<span className="tnum">{tl.user.length}</span>}
         />
         <Gauge
           index={4}
           label="Skills"
-          accent="cyan"
+          accent="deep"
           value={<span className="tnum">{tl.skills.length}</span>}
         />
         <Gauge
           index={5}
           label="Serveurs MCP"
-          accent="lime"
+          accent="live"
           value={<span className="tnum">{tl.mcp_servers.length}</span>}
         />
       </div>
 
       {/* Languages donut + Frameworks horizontal bar */}
       <div className="grid gap-5 lg:grid-cols-2">
-        <Panel label="Langages — mix" accent="cyan">
+        <Panel label="Langages — mix" accent="deep">
           {langs.length === 0 ? (
             <Empty />
           ) : (
@@ -112,7 +112,7 @@ export default function TechTooling() {
                       innerRadius={48}
                       outerRadius={80}
                       paddingAngle={2}
-                      stroke="#07090d"
+                      stroke="#04070d"
                       strokeWidth={2}
                       isAnimationActive={false}
                     >
@@ -145,7 +145,7 @@ export default function TechTooling() {
           )}
         </Panel>
 
-        <Panel label="Frameworks — top 10" accent="amber">
+        <Panel label="Frameworks — top 10" accent="brand">
           {frameworks.length === 0 ? (
             <Empty />
           ) : (
@@ -159,19 +159,19 @@ export default function TechTooling() {
                   <XAxis
                     type="number"
                     tick={{ fill: "#5b6878", fontSize: 10, fontFamily: "IBM Plex Mono" }}
-                    stroke="#2a3543"
+                    stroke="#233246"
                   />
                   <YAxis
                     type="category"
                     dataKey="framework"
                     width={100}
                     tick={{ fill: "#e6edf3", fontSize: 11, fontFamily: "IBM Plex Mono" }}
-                    stroke="#2a3543"
+                    stroke="#233246"
                   />
-                  <Tooltip cursor={{ fill: "#11161f" }} content={<FrameworkTip />} />
+                  <Tooltip cursor={{ fill: "#0f1722" }} content={<FrameworkTip />} />
                   <Bar
                     dataKey="count"
-                    fill="#ffb000"
+                    fill="#12ABDB"
                     radius={[0, 2, 2, 0]}
                     isAnimationActive={false}
                   />
@@ -184,7 +184,7 @@ export default function TechTooling() {
 
       {/* Built-in tools vs User tools — two DISTINCT side-by-side visualizations */}
       <div className="grid gap-5 lg:grid-cols-2">
-        <Panel label="Outils intégrés — top 10" accent="cyan">
+        <Panel label="Outils intégrés — top 10" accent="deep">
           {builtin.length === 0 ? (
             <Empty />
           ) : (
@@ -198,19 +198,19 @@ export default function TechTooling() {
                   <XAxis
                     type="number"
                     tick={{ fill: "#5b6878", fontSize: 10, fontFamily: "IBM Plex Mono" }}
-                    stroke="#2a3543"
+                    stroke="#233246"
                   />
                   <YAxis
                     type="category"
                     dataKey="tool"
                     width={90}
                     tick={{ fill: "#e6edf3", fontSize: 11, fontFamily: "IBM Plex Mono" }}
-                    stroke="#2a3543"
+                    stroke="#233246"
                   />
-                  <Tooltip cursor={{ fill: "#11161f" }} content={<ToolBarTip color={CYAN} />} />
+                  <Tooltip cursor={{ fill: "#0f1722" }} content={<ToolBarTip color={DEEP} />} />
                   <Bar
                     dataKey="count"
-                    fill={CYAN}
+                    fill={DEEP}
                     radius={[0, 2, 2, 0]}
                     isAnimationActive={false}
                   />
@@ -220,7 +220,7 @@ export default function TechTooling() {
           )}
         </Panel>
 
-        <Panel label="Outils utilisateur — top 10" accent="amber">
+        <Panel label="Outils utilisateur — top 10" accent="brand">
           {userTools.length === 0 ? (
             <Empty />
           ) : (
@@ -234,19 +234,19 @@ export default function TechTooling() {
                   <XAxis
                     type="number"
                     tick={{ fill: "#5b6878", fontSize: 10, fontFamily: "IBM Plex Mono" }}
-                    stroke="#2a3543"
+                    stroke="#233246"
                   />
                   <YAxis
                     type="category"
                     dataKey="tool"
                     width={90}
                     tick={{ fill: "#e6edf3", fontSize: 11, fontFamily: "IBM Plex Mono" }}
-                    stroke="#2a3543"
+                    stroke="#233246"
                   />
-                  <Tooltip cursor={{ fill: "#11161f" }} content={<ToolBarTip color={AMBER} />} />
+                  <Tooltip cursor={{ fill: "#0f1722" }} content={<ToolBarTip color={BRAND} />} />
                   <Bar
                     dataKey="count"
-                    fill={AMBER}
+                    fill={BRAND}
                     radius={[0, 2, 2, 0]}
                     isAnimationActive={false}
                   />
@@ -259,10 +259,10 @@ export default function TechTooling() {
 
       {/* Skills / MCP Servers / Subagents / Slash commands */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <MiniChart label="Skills" data={tl.skills} accent="cyan" />
-        <MiniChart label="Serveurs MCP" data={tl.mcp_servers} accent="amber" />
-        <MiniChart label="Sous-agents" data={tl.subagents} accent="cyan" />
-        <MiniChart label="Slash commands" data={tl.slash_commands} accent="amber" />
+        <MiniChart label="Skills" data={tl.skills} accent="deep" />
+        <MiniChart label="Serveurs MCP" data={tl.mcp_servers} accent="brand" />
+        <MiniChart label="Sous-agents" data={tl.subagents} accent="deep" />
+        <MiniChart label="Slash commands" data={tl.slash_commands} accent="brand" />
       </div>
     </div>
   );
@@ -285,10 +285,10 @@ function MiniChart({
 }: {
   label: string;
   data: { tool: string; count: number }[];
-  accent: "amber" | "cyan";
+  accent: "brand" | "deep";
 }) {
   // Bar color matches the panel accent so header and bars stay consistent.
-  const barColor = accent === "cyan" ? CYAN : AMBER;
+  const barColor = accent === "deep" ? DEEP : BRAND;
   return (
     <Panel label={label} accent={accent}>
       {data.length === 0 ? (
@@ -304,16 +304,16 @@ function MiniChart({
               <XAxis
                 type="number"
                 tick={{ fill: "#5b6878", fontSize: 9, fontFamily: "IBM Plex Mono" }}
-                stroke="#2a3543"
+                stroke="#233246"
               />
               <YAxis
                 type="category"
                 dataKey="tool"
                 width={80}
                 tick={{ fill: "#e6edf3", fontSize: 10, fontFamily: "IBM Plex Mono" }}
-                stroke="#2a3543"
+                stroke="#233246"
               />
-              <Tooltip cursor={{ fill: "#11161f" }} content={<ToolBarTip color={barColor} />} />
+              <Tooltip cursor={{ fill: "#0f1722" }} content={<ToolBarTip color={barColor} />} />
               <Bar dataKey="count" fill={barColor} radius={[0, 2, 2, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
@@ -337,7 +337,7 @@ function LangTip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return box(
-    <span className="text-cyan">
+    <span className="text-deep">
       {d.language}: <span className="tnum">{d.count}</span>
     </span>,
   );
@@ -347,7 +347,7 @@ function FrameworkTip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return box(
-    <span className="text-amber">
+    <span className="text-brand">
       {d.framework}: <span className="tnum">{d.count}</span>
     </span>,
   );
@@ -357,7 +357,7 @@ function ToolBarTip({ active, payload, color }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return box(
-    <span style={{ color: color ?? "#36e0e0" }}>
+    <span style={{ color: color ?? "#0070AD" }}>
       {d.tool}: <span className="tnum">{d.count}</span>
     </span>,
   );

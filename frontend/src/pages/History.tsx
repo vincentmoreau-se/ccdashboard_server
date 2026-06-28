@@ -17,7 +17,8 @@ import { api } from "../api/client";
 import { Gauge, Panel } from "../components/hud";
 import { formatCost, formatTokens } from "../lib/format";
 
-const DONUT = ["#ffb000", "#36e0e0", "#9be34a", "#ff5d62", "#8595a8", "#c792ea"];
+// Capgemini extended vibrant palette (brand/deep + peacock/violet/sky/sapphire + live/alert)
+const DONUT = ["#12ABDB", "#0070AD", "#00BFB3", "#7B61FF", "#4FC3F7", "#1D4F91", "#9be34a", "#ff5d62"];
 
 export default function History() {
   const [metric, setMetric] = useState<"cost" | "tokens">("cost");
@@ -44,19 +45,19 @@ export default function History() {
       </h1>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Gauge index={0} label="Coût total" unit={cur} accent="amber"
+        <Gauge index={0} label="Coût total" unit={cur} accent="brand"
           value={<span className="tnum">{(ov?.total_cost ?? 0).toFixed(2)}</span>} />
-        <Gauge index={1} label="Tokens totaux" accent="cyan"
+        <Gauge index={1} label="Tokens totaux" accent="deep"
           value={formatTokens(ov?.total_tokens ?? 0)} />
-        <Gauge index={2} label="Sessions" accent="lime"
+        <Gauge index={2} label="Sessions" accent="live"
           value={<span className="tnum">{ov?.session_count ?? 0}</span>} />
-        <Gauge index={3} label="Efficacité cache" unit="%" accent="cyan"
+        <Gauge index={3} label="Efficacité cache" unit="%" accent="deep"
           value={<span className="tnum">{((ov?.cache_efficiency ?? 0) * 100).toFixed(0)}</span>} />
       </div>
 
       <Panel
         label={`Consommation dans le temps — ${metric === "cost" ? "coût" : "tokens"}`}
-        accent="amber"
+        accent="brand"
         right={
           <div className="flex border border-edge">
             {(["cost", "tokens"] as const).map((m) => (
@@ -64,7 +65,7 @@ export default function History() {
                 key={m}
                 onClick={() => setMetric(m)}
                 className={`px-3 py-1 font-display text-[10px] uppercase tracking-[0.2em] ${
-                  metric === m ? "bg-amber text-void" : "text-ash hover:text-bone"
+                  metric === m ? "bg-brand text-void" : "text-ash hover:text-bone"
                 }`}
               >
                 {m === "cost" ? cur : "TOK"}
@@ -78,16 +79,16 @@ export default function History() {
             <AreaChart data={ts.data ?? []} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
               <defs>
                 <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ffb000" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="#ffb000" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#12ABDB" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#12ABDB" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="bucket" tick={{ fill: "#5b6878", fontSize: 10, fontFamily: "IBM Plex Mono" }}
-                tickFormatter={(v: string) => v.slice(11) || v} stroke="#2a3543" />
+                tickFormatter={(v: string) => v.slice(11) || v} stroke="#233246" />
               <YAxis tick={{ fill: "#5b6878", fontSize: 10, fontFamily: "IBM Plex Mono" }}
-                stroke="#2a3543" width={48} />
+                stroke="#233246" width={48} />
               <Tooltip content={<ChartTip metric={metric} cur={cur} />} />
-              <Area type="monotone" dataKey="value" stroke="#ffb000" strokeWidth={2}
+              <Area type="monotone" dataKey="value" stroke="#12ABDB" strokeWidth={2}
                 fill="url(#g)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -95,14 +96,14 @@ export default function History() {
       </Panel>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Panel label="Répartition par modèle" accent="cyan">
+        <Panel label="Répartition par modèle" accent="deep">
           <div className="flex items-center gap-4">
             <div className="h-52 w-52 shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={models.data ?? []} dataKey="tokens" nameKey="model"
                     cx="50%" cy="50%" innerRadius={48} outerRadius={80} paddingAngle={2}
-                    stroke="#07090d" strokeWidth={2}>
+                    stroke="#04070d" strokeWidth={2}>
                     {(models.data ?? []).map((_, i) => (
                       <Cell key={i} fill={DONUT[i % DONUT.length]} />
                     ))}
@@ -128,24 +129,24 @@ export default function History() {
           <div className="mt-3 flex flex-wrap gap-3 border-t border-grid pt-3">
             {(providers.data ?? []).map((p) => (
               <span key={p.provider} className="font-mono text-[11px] text-haze">
-                <span className="text-cyan">{p.provider}</span> ▏ {formatCost(p.cost, cur)} ▏{" "}
+                <span className="text-deep">{p.provider}</span> ▏ {formatCost(p.cost, cur)} ▏{" "}
                 {p.session_count} sess.
               </span>
             ))}
           </div>
         </Panel>
 
-        <Panel label="Outils les plus utilisés" accent="amber">
+        <Panel label="Outils les plus utilisés" accent="brand">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={(tools.data ?? []).slice(0, 10)} layout="vertical"
                 margin={{ top: 0, right: 12, left: 8, bottom: 0 }}>
                 <XAxis type="number" tick={{ fill: "#5b6878", fontSize: 10, fontFamily: "IBM Plex Mono" }}
-                  stroke="#2a3543" />
+                  stroke="#233246" />
                 <YAxis type="category" dataKey="tool" width={90}
-                  tick={{ fill: "#e6edf3", fontSize: 11, fontFamily: "IBM Plex Mono" }} stroke="#2a3543" />
-                <Tooltip cursor={{ fill: "#11161f" }} content={<ToolTip />} />
-                <Bar dataKey="count" fill="#36e0e0" radius={[0, 2, 2, 0]} />
+                  tick={{ fill: "#e6edf3", fontSize: 11, fontFamily: "IBM Plex Mono" }} stroke="#233246" />
+                <Tooltip cursor={{ fill: "#0f1722" }} content={<ToolTip />} />
+                <Bar dataKey="count" fill="#0070AD" radius={[0, 2, 2, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -169,7 +170,7 @@ function ChartTip({ active, payload, label, metric, cur }: any) {
   return box(
     <>
       <div className="text-haze">{label}</div>
-      <div className="text-amber tnum">
+      <div className="text-brand tnum">
         {metric === "cost" ? formatCost(v, cur) : formatTokens(v) + " tokens"}
       </div>
     </>
@@ -182,7 +183,7 @@ function DonutTip({ active, payload, cur }: any) {
   return box(
     <>
       <div className="text-bone">{d.model}</div>
-      <div className="text-cyan tnum">{formatTokens(d.tokens)} tok ▏ {formatCost(d.cost, cur)}</div>
+      <div className="text-deep tnum">{formatTokens(d.tokens)} tok ▏ {formatCost(d.cost, cur)}</div>
     </>
   );
 }
@@ -190,5 +191,5 @@ function DonutTip({ active, payload, cur }: any) {
 function ToolTip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
-  return box(<span className="text-cyan">{d.tool}: <span className="tnum">{d.count}</span></span>);
+  return box(<span className="text-deep">{d.tool}: <span className="tnum">{d.count}</span></span>);
 }
