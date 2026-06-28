@@ -94,6 +94,61 @@ def test_technologies_breakdown_function(client, payload, auth_headers):
     assert fws["react"] == 2
 
 
+def _second_payload_with_overlap(payload):
+    """A distinct ingest (different machine_id => distinct session_uid) whose
+    session reuses overlapping tech/tooling map keys so cross-session
+    summation can be verified."""
+    import copy
+
+    p = copy.deepcopy(payload)
+    p["source"]["machine_id"] = "laptop-02"
+    s = p["sessions"][0]
+    s["session_id"] = "sess-3"
+    s["language_counts"] = {"python": 5, "go": 2}
+    s["framework_counts"] = {"fastapi": 3, "django": 1}
+    s["builtin_tool_counts"] = {"Read": 7, "Grep": 4}
+    # keep only this one session to keep the assertions focused
+    p["sessions"] = [s]
+    return p
+
+
+def test_technologies_tooling_sum_across_sessions(client, payload, auth_headers):
+    """Counts for an overlapping key must SUM across distinct sessions."""
+    from app import metrics
+
+    client.post("/ingest", json=payload, headers=auth_headers)
+    client.post(
+        "/ingest", json=_second_payload_with_overlap(payload), headers=auth_headers
+    )
+
+    tech = metrics.technologies_breakdown()
+    langs = {item["language"]: item["count"] for item in tech["languages"]}
+    fws = {item["framework"]: item["count"] for item in tech["frameworks"]}
+    # python: 8 (sess-1) + 5 (sess-3) = 13 ; fastapi: 4 + 3 = 7
+    assert langs["python"] == 13
+    assert langs["go"] == 2  # only sess-3
+    assert fws["fastapi"] == 7
+    assert fws["django"] == 1
+
+    tooling = metrics.tooling_breakdown()
+    builtin = {item["tool"]: item["count"] for item in tooling["builtin"]}
+    # Read: 10 (sess-1) + 7 (sess-3) = 17
+    assert builtin["Read"] == 17
+    assert builtin["Grep"] == 4  # only sess-3
+
+
+def test_aggregate_json_column_rejects_unknown_column(client, payload, auth_headers):
+    """The private helper guards against non-whitelisted column names."""
+    import pytest
+
+    from app import metrics
+    from app.db import get_conn
+
+    client.post("/ingest", json=payload, headers=auth_headers)
+    with pytest.raises(ValueError):
+        metrics._aggregate_json_column(get_conn(), "cost")
+
+
 def test_technologies_breakdown_route(client, payload, auth_headers, logged_in):
     """GET /api/technologies returns the correct structure and values."""
     client.post("/ingest", json=payload, headers=auth_headers)

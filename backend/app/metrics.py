@@ -335,12 +335,33 @@ def provider_split() -> list[dict]:
     ]
 
 
+# The only session columns this helper may aggregate. `col` is interpolated into
+# the SQL (sqlite can't bind an identifier), so it is validated against this
+# whitelist — a guard so the private helper can't misbehave if reused with an
+# unvetted column name.
+_AGGREGATABLE_COLUMNS = frozenset(
+    {
+        "tool_counts",
+        "language_counts",
+        "framework_counts",
+        "builtin_tool_counts",
+        "user_tool_counts",
+        "skill_counts",
+        "mcp_server_counts",
+        "subagent_counts",
+        "slash_command_counts",
+    }
+)
+
+
 def _aggregate_json_column(conn, col: str) -> Counter:
     """Aggregate a single JSON column ({name: count}) across all sessions.
 
     Robust to NULL (treated as empty) and invalid JSON (silently skipped so
     one corrupt session never breaks the aggregate).
     """
+    if col not in _AGGREGATABLE_COLUMNS:
+        raise ValueError(f"refusing to aggregate unknown column: {col!r}")
     rows = conn.execute(f"SELECT {col} FROM session").fetchall()
     counter: Counter = Counter()
     for r in rows:
