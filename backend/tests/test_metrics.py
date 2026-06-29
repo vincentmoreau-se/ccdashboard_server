@@ -53,6 +53,48 @@ def test_team_leaderboard_avg_cost(client, payload, auth_headers, logged_in):
     assert abs(rocket["avg_cost"] - round(rocket["cost"] / 2, 4)) < 1e-9
 
 
+def _solo_payload(payload, user_id, machine_id):
+    import copy
+
+    p = copy.deepcopy(payload)
+    p["source"]["user_id"] = user_id
+    p["source"]["machine_id"] = machine_id
+    s = p["sessions"][0]
+    s["session_id"] = f"sess-{machine_id}"
+    p["sessions"] = [s]
+    return p
+
+
+def test_unknown_team_and_location_collapse_to_single_bucket(
+    client, payload, auth_headers, logged_in
+):
+    """Unmatched users (NULL join) and users explicitly bucketed 'UNKNOWN' in the CSV
+    must aggregate into ONE 'UNKNOWN' row, not two. Regression: GROUP BY must use the
+    COALESCE expression, not the raw (nullable) participant column."""
+    from app.db import get_conn
+
+    # dave is present in the participant table with an explicit 'UNKNOWN' team/loc;
+    # zoe is absent entirely (the LEFT JOIN yields NULL -> COALESCE 'UNKNOWN').
+    conn = get_conn()
+    conn.execute(
+        "INSERT OR REPLACE INTO participant (user_id, team_id, localisation, display_name)"
+        " VALUES ('dave@example.com', 'UNKNOWN', 'UNKNOWN', 'Dave')"
+    )
+    conn.commit()
+    client.post("/ingest", json=_solo_payload(payload, "dave@example.com", "m-dave"), headers=auth_headers)
+    client.post("/ingest", json=_solo_payload(payload, "zoe@example.com", "m-zoe"), headers=auth_headers)
+
+    teams = logged_in.get("/api/leaderboard/teams").json()
+    unknown_teams = [t for t in teams if t["team_id"] == "UNKNOWN"]
+    assert len(unknown_teams) == 1
+    assert unknown_teams[0]["participant_count"] == 2  # dave + zoe merged
+
+    locs = logged_in.get("/api/leaderboard/locations").json()
+    unknown_locs = [loc for loc in locs if loc["localisation"] == "UNKNOWN"]
+    assert len(unknown_locs) == 1
+    assert unknown_locs[0]["participant_count"] == 2
+
+
 def test_location_leaderboard_has_avg_cost(client, payload, auth_headers, logged_in):
     client.post("/ingest", json=payload, headers=auth_headers)
     locs = logged_in.get("/api/leaderboard/locations").json()
