@@ -3,8 +3,13 @@ from __future__ import annotations
 import json
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from app.db import get_conn
+
+# Boundary of "today" for the period filter is the local civil day in France,
+# not UTC (a UTC midnight would flip "today" at 02:00 Paris time in summer).
+PARIS_TZ = ZoneInfo("Europe/Paris")
 
 # "tokens" everywhere = input + output (generated/consumed tokens), matching the
 # local ccdashboard headline. Cache tokens (cache_read dominates, ~100x) are NOT
@@ -20,6 +25,28 @@ LOC_EXPR = "COALESCE(p.localisation, 'UNKNOWN')"
 def _live_cutoff(live_window_seconds: int) -> str:
     cutoff = datetime.now(timezone.utc) - timedelta(seconds=live_window_seconds)
     return cutoff.isoformat()
+
+
+def _start_of_today_utc() -> str:
+    """Midnight (Europe/Paris) of the current day, as a UTC ISO string.
+
+    Comparable lexicographically to server_updated_at (also written via now_utc()
+    as a +00:00 ISO string), so it can be used directly in a SQL `>=` bound.
+    """
+    now_local = datetime.now(PARIS_TZ)
+    start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    return start_local.astimezone(timezone.utc).isoformat()
+
+
+def _period_clause(period: str, alias: str = "s") -> tuple[str, list]:
+    """WHERE fragment (+ params) restricting sessions to "today" by server clock.
+
+    period="today" keeps sessions seen since local-midnight; anything else is
+    the all-time/cumulative default and adds no constraint.
+    """
+    if period == "today":
+        return f"{alias}.server_updated_at >= ?", [_start_of_today_utc()]
+    return "", []
 
 
 # --------------------------------------------------------------------------
@@ -115,8 +142,10 @@ def _sorted_with_rank(rows: list[dict], sort: str) -> list[dict]:
     return rows
 
 
-def leaderboard_teams(sort: str = "cost") -> list[dict]:
+def leaderboard_teams(sort: str = "cost", period: str = "total") -> list[dict]:
     conn = get_conn()
+    clause, params = _period_clause(period)
+    where_sql = f"WHERE {clause}" if clause else ""
     rows = conn.execute(
         f"""
         SELECT {TEAM_EXPR} AS team_id,
@@ -130,8 +159,10 @@ def leaderboard_teams(sort: str = "cost") -> list[dict]:
                COALESCE(SUM(s.cache_write_5m + s.cache_write_1h), 0) AS cache_write
         FROM session s
         LEFT JOIN participant p ON p.user_id = s.user_id
+        {where_sql}
         GROUP BY team_id, localisation
-        """
+        """,
+        params,
     ).fetchall()
     # Team evaluation = average of its members' latest scores (per user_id, joined
     # to team via the participant CSV). Computed separately to avoid multiplying the
@@ -169,8 +200,10 @@ def leaderboard_teams(sort: str = "cost") -> list[dict]:
     return _sorted_with_rank(out, sort)
 
 
-def leaderboard_locations(sort: str = "cost") -> list[dict]:
+def leaderboard_locations(sort: str = "cost", period: str = "total") -> list[dict]:
     conn = get_conn()
+    clause, params = _period_clause(period)
+    where_sql = f"WHERE {clause}" if clause else ""
     rows = conn.execute(
         f"""
         SELECT {LOC_EXPR}  AS localisation,
@@ -184,8 +217,10 @@ def leaderboard_locations(sort: str = "cost") -> list[dict]:
                COALESCE(SUM(s.cache_write_5m + s.cache_write_1h), 0) AS cache_write
         FROM session s
         LEFT JOIN participant p ON p.user_id = s.user_id
+        {where_sql}
         GROUP BY localisation
-        """
+        """,
+        params,
     ).fetchall()
     # Location evaluation = average of its members' latest scores, joined to a
     # localisation via the participant CSV (separate query to avoid inflating the
@@ -223,8 +258,10 @@ def leaderboard_locations(sort: str = "cost") -> list[dict]:
     return _sorted_with_rank(out, sort)
 
 
-def leaderboard_participants(sort: str = "cost") -> list[dict]:
+def leaderboard_participants(sort: str = "cost", period: str = "total") -> list[dict]:
     conn = get_conn()
+    clause, params = _period_clause(period)
+    where_sql = f"WHERE {clause}" if clause else ""
     rows = conn.execute(
         f"""
         SELECT s.user_id AS user_id,
@@ -237,8 +274,10 @@ def leaderboard_participants(sort: str = "cost") -> list[dict]:
                GROUP_CONCAT(DISTINCT s.data_source) AS data_sources
         FROM session s
         LEFT JOIN participant p ON p.user_id = s.user_id
+        {where_sql}
         GROUP BY s.user_id, display_name, team_id
-        """
+        """,
+        params,
     ).fetchall()
     eval_rows = conn.execute("SELECT user_id, score FROM evaluation").fetchall()
     eval_by_user = {r["user_id"]: r["score"] for r in eval_rows}

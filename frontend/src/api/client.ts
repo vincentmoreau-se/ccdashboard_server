@@ -31,12 +31,12 @@ export const api = {
   overview: () => req<Overview>("/api/overview"),
   timeseries: (bucket: "hour" | "day", metric: "cost" | "tokens") =>
     req<TimeBucket[]>(`/api/timeseries?bucket=${bucket}&metric=${metric}`),
-  teams: (sort: SortBy = "cost") =>
-    req<TeamRow[]>(`/api/leaderboard/teams?sort=${sort}`),
-  participants: (sort: SortBy = "cost") =>
-    req<ParticipantRow[]>(`/api/leaderboard/participants?sort=${sort}`),
-  locations: (sort: SortBy = "cost") =>
-    req<LocationRow[]>(`/api/leaderboard/locations?sort=${sort}`),
+  teams: (sort: SortBy = "cost", period: Period = "total") =>
+    req<TeamRow[]>(`/api/leaderboard/teams?sort=${sort}&period=${period}`),
+  participants: (sort: SortBy = "cost", period: Period = "total") =>
+    req<ParticipantRow[]>(`/api/leaderboard/participants?sort=${sort}&period=${period}`),
+  locations: (sort: SortBy = "cost", period: Period = "total") =>
+    req<LocationRow[]>(`/api/leaderboard/locations?sort=${sort}&period=${period}`),
   team: (id: string) => req<TeamDetail>(`/api/teams/${encodeURIComponent(id)}`),
   models: () => req<ModelRow[]>("/api/models"),
   providers: () => req<ProviderRow[]>("/api/providers"),
@@ -78,6 +78,7 @@ export interface TimeBucket {
 }
 
 export type SortBy = "cost" | "eval" | "volume";
+export type Period = "total" | "today";
 
 export interface TeamRow {
   rank: number;
