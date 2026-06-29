@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS session (
     mcp_server_counts TEXT NOT NULL DEFAULT '{}',
     subagent_counts   TEXT NOT NULL DEFAULT '{}',
     slash_command_counts TEXT NOT NULL DEFAULT '{}',
-    server_updated_at TEXT NOT NULL
+    server_updated_at TEXT NOT NULL,
+    data_source       TEXT NOT NULL DEFAULT 'ccdashboard'
 );
 CREATE INDEX IF NOT EXISTS idx_session_user    ON session(user_id);
 CREATE INDEX IF NOT EXISTS idx_session_started ON session(started_at);
@@ -130,6 +131,7 @@ def init_db(db_path: str) -> sqlite3.Connection:
     _ensure_column(conn, "session", "mcp_server_counts", "TEXT NOT NULL DEFAULT '{}'")
     _ensure_column(conn, "session", "subagent_counts", "TEXT NOT NULL DEFAULT '{}'")
     _ensure_column(conn, "session", "slash_command_counts", "TEXT NOT NULL DEFAULT '{}'")
+    _ensure_column(conn, "session", "data_source", "TEXT NOT NULL DEFAULT 'ccdashboard'")
     conn.commit()
     _conn = conn
     return conn

@@ -235,3 +235,23 @@ export function Bar({
     </div>
   );
 }
+
+/** Small tag flagging a row whose telemetry comes from the LiteLLM proxy
+ * (the participant is not running the ccdashboard client). */
+export function SourceBadge({ sources }: { sources?: string[] | string | null }) {
+  const list = Array.isArray(sources) ? sources : sources ? [sources] : [];
+  if (!list.includes("litellm")) return null;
+  const ccToo = list.includes("ccdashboard");
+  return (
+    <span
+      title={
+        ccToo
+          ? "Données partiellement issues du proxy LiteLLM"
+          : "Données issues du proxy LiteLLM (client ccdashboard absent)"
+      }
+      className="ml-2 inline-block rounded-sm border border-haze/40 px-1.5 py-px align-middle font-mono text-[9px] uppercase tracking-[0.15em] text-haze"
+    >
+      LiteLLM{ccToo ? "+" : ""}
+    </span>
+  );
+}

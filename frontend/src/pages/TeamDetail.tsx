@@ -1,7 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
-import { Panel } from "../components/hud";
+import { Panel, SourceBadge } from "../components/hud";
 import { formatCost, formatDuration, formatTokens, formatTime } from "../lib/format";
 
 export default function TeamDetail() {
@@ -78,6 +78,7 @@ export default function TeamDetail() {
                     <td className="py-2 font-mono text-bone">
                       {s.is_active && <span className="mr-1.5 text-live">●</span>}
                       {s.project}
+                      <SourceBadge sources={s.data_source} />
                     </td>
                     <td className="py-2 font-mono text-ash">{s.user_id}</td>
                     <td className="py-2 font-mono text-xs text-ash">{s.models.join(", ") || "—"}</td>

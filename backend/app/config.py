@@ -34,6 +34,15 @@ class Settings(BaseSettings):
     currency: str = "€"
     event_name: str = "Hackathon"
 
+    # LiteLLM source (optional). When enabled, a background poller pulls per-key
+    # usage from the LiteLLM proxy and fills in participants not covered by the
+    # ccdashboard client. Disabled by default; all keys are CCSRV_LITELLM_*.
+    litellm_enabled: bool = False
+    litellm_base_url: str = "http://litellm:4000"
+    litellm_master_key: str = ""
+    litellm_poll_interval_seconds: int = 300
+    litellm_lookback_days: int = 2  # days re-aggregated on each poll
+
     # CORS
     frontend_origin: str = "http://localhost:5173"
 

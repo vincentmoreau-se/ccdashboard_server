@@ -14,6 +14,7 @@ from app import enrichment
 from app.config import get_settings
 from app.db import close_db, init_db
 from app.ingest import router as ingest_router
+from app.litellm_source import litellm_poll_loop
 from app.live import router as live_router
 from app.routes_dashboard import router as dashboard_router
 from app.snapshots import snapshot_loop
@@ -28,15 +29,20 @@ async def lifespan(app: FastAPI):
     init_db(settings.db_path)
     loaded = enrichment.load_from_path(settings.participants_csv)
     logger.info("loaded %d participants from %s", loaded, settings.participants_csv)
-    task = asyncio.create_task(snapshot_loop())
+    tasks = [asyncio.create_task(snapshot_loop())]
+    if settings.litellm_enabled:
+        logger.info("litellm source enabled; polling %s", settings.litellm_base_url)
+        tasks.append(asyncio.create_task(litellm_poll_loop()))
     try:
         yield
     finally:
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        for task in tasks:
+            task.cancel()
+        for task in tasks:
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
         close_db()
 
 

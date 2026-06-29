@@ -233,7 +233,8 @@ def leaderboard_participants(sort: str = "cost") -> list[dict]:
                COUNT(*) AS session_count,
                COALESCE(SUM({TOKENS_SQL}), 0) AS tokens,
                COALESCE(SUM(s.cost), 0.0) AS cost,
-               COALESCE(SUM(s.lines_generated), 0) AS volume
+               COALESCE(SUM(s.lines_generated), 0) AS volume,
+               GROUP_CONCAT(DISTINCT s.data_source) AS data_sources
         FROM session s
         LEFT JOIN participant p ON p.user_id = s.user_id
         GROUP BY s.user_id, display_name, team_id
@@ -251,6 +252,7 @@ def leaderboard_participants(sort: str = "cost") -> list[dict]:
             "tokens": r["tokens"],
             "cost": round(r["cost"], 4),
             "volume": r["volume"],
+            "data_sources": sorted((r["data_sources"] or "").split(",")) if r["data_sources"] else [],
             "score": (
                 round(eval_by_user[r["user_id"]], 1)
                 if eval_by_user.get(r["user_id"]) is not None
@@ -478,6 +480,7 @@ def _session_brief(r) -> dict:
         "models": json.loads(r["models"] or "[]"),
         "provider": r["provider"],
         "is_active": bool(r["is_active"]),
+        "data_source": r["data_source"] if "data_source" in keys else None,
         "message_count": r["message_count"],
         "duration_seconds": r["duration_seconds"],
         "tokens": r["in_tokens"] + r["out_tokens"],
