@@ -83,7 +83,6 @@ export type Period = "total" | "today";
 export interface TeamRow {
   rank: number;
   team_id: string;
-  localisation: string;
   participant_count: number;
   session_count: number;
   tokens: number;

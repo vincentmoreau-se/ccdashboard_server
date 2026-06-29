@@ -2,17 +2,14 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { api, type Period, type SortBy } from "../api/client";
+import { api, type Period } from "../api/client";
 import { Bar, Panel, SourceBadge } from "../components/hud";
 import { formatCost, formatNum, formatTokens } from "../lib/format";
 
 type Mode = "teams" | "participants" | "locations";
-
-const SORT_LABELS: Record<SortBy, string> = {
-  cost: "Coût",
-  eval: "Évaluation",
-  volume: "Volume",
-};
+type Dir = "asc" | "desc";
+type SortState = { key: string; dir: Dir };
+type Column = { label: string; key: string | null; type?: "num" | "str"; align?: "right" };
 
 const MODE_LABELS: Record<Mode, string> = {
   teams: "Équipes",
@@ -25,27 +22,77 @@ const PERIOD_LABELS: Record<Period, string> = {
   total: "Total",
 };
 
+const TEAM_COLUMNS: Column[] = [
+  { label: "#", key: null },
+  { label: "Équipe", key: "team_id", type: "str" },
+  { label: "Membres", key: "participant_count", type: "num" },
+  { label: "Sessions", key: "session_count", type: "num" },
+  { label: "Tokens", key: "tokens", type: "num" },
+  { label: "Volume", key: "volume", type: "num" },
+  { label: "Éval", key: "eval_score", type: "num" },
+  { label: "Cache", key: "cache_efficiency", type: "num" },
+  { label: "Coût", key: "cost", type: "num", align: "right" },
+];
+
+const PARTICIPANT_COLUMNS: Column[] = [
+  { label: "#", key: null },
+  { label: "Participant", key: "display_name", type: "str" },
+  { label: "Équipe", key: "team_id", type: "str" },
+  { label: "Sessions", key: "session_count", type: "num" },
+  { label: "Tokens", key: "tokens", type: "num" },
+  { label: "Volume", key: "volume", type: "num" },
+  { label: "Éval", key: "score", type: "num" },
+  { label: "Coût", key: "cost", type: "num", align: "right" },
+];
+
+const LOCATION_COLUMNS: Column[] = [
+  { label: "#", key: null },
+  { label: "Ville", key: "localisation", type: "str" },
+  { label: "Équipes", key: "team_count", type: "num" },
+  { label: "Membres", key: "participant_count", type: "num" },
+  { label: "Sessions", key: "session_count", type: "num" },
+  { label: "Tokens", key: "tokens", type: "num" },
+  { label: "Volume", key: "volume", type: "num" },
+  { label: "Éval", key: "eval_score", type: "num" },
+  { label: "Cache", key: "cache_efficiency", type: "num" },
+  { label: "Coût", key: "cost", type: "num", align: "right" },
+];
+
 function formatScore(n: number | null): string {
   return n == null ? "—" : `${n}/100`;
 }
 
+function sortRows<T>(rows: T[], key: string, dir: Dir): T[] {
+  const sign = dir === "asc" ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const av = (a as Record<string, unknown>)[key];
+    const bv = (b as Record<string, unknown>)[key];
+    if (av == null && bv == null) return 0; // null/éval manquante
+    if (av == null) return 1; // nulls toujours en dernier
+    if (bv == null) return -1;
+    if (typeof av === "string" && typeof bv === "string")
+      return sign * av.localeCompare(bv, "fr");
+    return sign * ((av as number) - (bv as number));
+  });
+}
+
 export default function LeaderboardPage() {
   const [mode, setMode] = useState<Mode>("teams");
-  const [sort, setSort] = useState<SortBy>("cost");
   const [period, setPeriod] = useState<Period>("total");
+  const [sort, setSort] = useState<SortState>({ key: "cost", dir: "desc" });
   const teams = useQuery({
-    queryKey: ["teams", sort, period],
-    queryFn: () => api.teams(sort, period),
+    queryKey: ["teams", period],
+    queryFn: () => api.teams("cost", period),
     refetchInterval: 30000,
   });
   const parts = useQuery({
-    queryKey: ["participants", sort, period],
-    queryFn: () => api.participants(sort, period),
+    queryKey: ["participants", period],
+    queryFn: () => api.participants("cost", period),
     refetchInterval: 30000,
   });
   const locs = useQuery({
-    queryKey: ["locations", sort, period],
-    queryFn: () => api.locations(sort, period),
+    queryKey: ["locations", period],
+    queryFn: () => api.locations("cost", period),
     refetchInterval: 30000,
   });
   const cfg = useQuery({ queryKey: ["config"], queryFn: api.config });
@@ -55,6 +102,19 @@ export default function LeaderboardPage() {
   const maxTeamCost = Math.max(1, ...(teams.data ?? []).map((t) => t.cost));
   const maxPartCost = Math.max(1, ...(parts.data ?? []).map((p) => p.cost));
   const maxLocCost = Math.max(1, ...(locs.data ?? []).map((l) => l.cost));
+
+  const onSort = (col: Column) => {
+    if (!col.key) return;
+    setSort((prev) =>
+      prev.key === col.key
+        ? { key: col.key!, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { key: col.key!, dir: col.type === "str" ? "asc" : "desc" },
+    );
+  };
+
+  const sortedTeams = sortRows(teams.data ?? [], sort.key, sort.dir);
+  const sortedParts = sortRows(parts.data ?? [], sort.key, sort.dir);
+  const sortedLocs = sortRows(locs.data ?? [], sort.key, sort.dir);
 
   return (
     <div className="space-y-5">
@@ -77,19 +137,6 @@ export default function LeaderboardPage() {
             ))}
           </div>
           <div className="flex border border-edge">
-            {(["cost", "eval", "volume"] as SortBy[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => setSort(s)}
-                className={`px-4 py-1.5 font-display text-[11px] font-600 uppercase tracking-[0.2em] transition ${
-                  sort === s ? "bg-deep text-void" : "text-ash hover:text-bone"
-                }`}
-              >
-                {SORT_LABELS[s]}
-              </button>
-            ))}
-          </div>
-          <div className="flex border border-edge">
             {(["teams", "participants", "locations"] as Mode[]).map((m) => (
               <button
                 key={m}
@@ -106,11 +153,11 @@ export default function LeaderboardPage() {
       </div>
 
       {mode === "teams" && (
-        <Panel label={`Équipes — classées par ${SORT_LABELS[sort].toLowerCase()}${periodSuffix}`} accent="brand">
-          <Table head={["#", "Équipe", "Ville", "Membres", "Sessions", "Tokens", "Volume", "Éval", "Cache", "Coût"]}>
-            {(teams.data ?? []).map((t, i) => (
+        <Panel label={`Équipes${periodSuffix}`} accent="brand">
+          <Table columns={TEAM_COLUMNS} sort={sort} onSort={onSort}>
+            {sortedTeams.map((t, i) => (
               <Row key={t.team_id} index={i}>
-                <Rank n={t.rank} />
+                <Rank n={i + 1} />
                 <td className="py-2">
                   <Link
                     to={`/teams/${encodeURIComponent(t.team_id)}`}
@@ -119,7 +166,6 @@ export default function LeaderboardPage() {
                     {t.team_id}
                   </Link>
                 </td>
-                <Cell className="text-ash">{t.localisation}</Cell>
                 <Cell>{t.participant_count}</Cell>
                 <Cell>{t.session_count}</Cell>
                 <Cell>{formatTokens(t.tokens)}</Cell>
@@ -152,11 +198,11 @@ export default function LeaderboardPage() {
       )}
 
       {mode === "participants" && (
-        <Panel label={`Participants — classés par ${SORT_LABELS[sort].toLowerCase()}${periodSuffix}`} accent="deep">
-          <Table head={["#", "Participant", "Équipe", "Sessions", "Tokens", "Volume", "Éval", "Coût"]}>
-            {(parts.data ?? []).map((p, i) => (
+        <Panel label={`Participants${periodSuffix}`} accent="deep">
+          <Table columns={PARTICIPANT_COLUMNS} sort={sort} onSort={onSort}>
+            {sortedParts.map((p, i) => (
               <Row key={p.user_id} index={i}>
-                <Rank n={p.rank} />
+                <Rank n={i + 1} />
                 <Cell className="font-display tracking-wide text-bone">
                   {p.display_name}
                   <SourceBadge sources={p.data_sources} />
@@ -183,11 +229,11 @@ export default function LeaderboardPage() {
       )}
 
       {mode === "locations" && (
-        <Panel label={`Villes — classées par ${SORT_LABELS[sort].toLowerCase()}${periodSuffix}`} accent="brand">
-          <Table head={["#", "Ville", "Équipes", "Membres", "Sessions", "Tokens", "Volume", "Éval", "Cache", "Coût"]}>
-            {(locs.data ?? []).map((l, i) => (
+        <Panel label={`Villes${periodSuffix}`} accent="brand">
+          <Table columns={LOCATION_COLUMNS} sort={sort} onSort={onSort}>
+            {sortedLocs.map((l, i) => (
               <Row key={l.localisation} index={i}>
-                <Rank n={l.rank} />
+                <Rank n={i + 1} />
                 <Cell className="font-display tracking-wide text-bone">
                   {l.localisation}
                 </Cell>
@@ -226,21 +272,47 @@ export default function LeaderboardPage() {
   );
 }
 
-function Table({ head, children }: { head: string[]; children: React.ReactNode }) {
+function Table({
+  columns,
+  sort,
+  onSort,
+  children,
+}: {
+  columns: Column[];
+  sort: SortState;
+  onSort: (col: Column) => void;
+  children: React.ReactNode;
+}) {
   return (
     <table className="w-full border-collapse">
       <thead>
         <tr className="border-b border-grid text-left">
-          {head.map((h, i) => (
-            <th
-              key={h}
-              className={`pb-2 font-display text-[10px] uppercase tracking-[0.2em] text-haze ${
-                i >= head.length - 1 ? "text-right" : ""
-              }`}
-            >
-              {h}
-            </th>
-          ))}
+          {columns.map((col) => {
+            const active = col.key != null && col.key === sort.key;
+            const arrow = active ? (sort.dir === "asc" ? " ▲" : " ▼") : "";
+            return (
+              <th
+                key={col.label}
+                className={`pb-2 font-display text-[10px] uppercase tracking-[0.2em] ${
+                  col.align === "right" ? "text-right" : ""
+                } ${active ? "text-bone" : "text-haze"}`}
+              >
+                {col.key ? (
+                  <button
+                    onClick={() => onSort(col)}
+                    className={`uppercase tracking-[0.2em] transition hover:text-bone ${
+                      col.align === "right" ? "ml-auto" : ""
+                    }`}
+                  >
+                    {col.label}
+                    {arrow}
+                  </button>
+                ) : (
+                  col.label
+                )}
+              </th>
+            );
+          })}
         </tr>
       </thead>
       <tbody>{children}</tbody>

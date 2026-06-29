@@ -153,7 +153,6 @@ def leaderboard_teams(sort: str = "cost", period: str = "total") -> list[dict]:
     rows = conn.execute(
         f"""
         SELECT {TEAM_EXPR} AS team_id,
-               {LOC_EXPR}  AS localisation,
                COUNT(DISTINCT s.user_id) AS participant_count,
                COUNT(*) AS session_count,
                COALESCE(SUM({TOKENS_SQL}), 0) AS tokens,
@@ -164,7 +163,7 @@ def leaderboard_teams(sort: str = "cost", period: str = "total") -> list[dict]:
         FROM session s
         LEFT JOIN participant p ON p.user_id = s.user_id
         {where_sql}
-        GROUP BY team_id, localisation
+        GROUP BY team_id
         """,
         params,
     ).fetchall()
@@ -188,7 +187,6 @@ def leaderboard_teams(sort: str = "cost", period: str = "total") -> list[dict]:
         out.append(
             {
                 "team_id": r["team_id"],
-                "localisation": r["localisation"],
                 "participant_count": r["participant_count"],
                 "session_count": r["session_count"],
                 "tokens": r["tokens"],
