@@ -78,19 +78,23 @@ def _norm_sort(sort: str) -> str:
     return sort if sort in ("cost", "eval", "volume") else "cost"
 
 
+def _norm_period(period: str) -> str:
+    return period if period in ("today", "total") else "total"
+
+
 @router.get("/api/leaderboard/teams", dependencies=[Depends(require_dashboard)])
-def leaderboard_teams(sort: str = "cost") -> list[dict]:
-    return metrics.leaderboard_teams(_norm_sort(sort))
+def leaderboard_teams(sort: str = "cost", period: str = "total") -> list[dict]:
+    return metrics.leaderboard_teams(_norm_sort(sort), _norm_period(period))
 
 
 @router.get("/api/leaderboard/participants", dependencies=[Depends(require_dashboard)])
-def leaderboard_participants(sort: str = "cost") -> list[dict]:
-    return metrics.leaderboard_participants(_norm_sort(sort))
+def leaderboard_participants(sort: str = "cost", period: str = "total") -> list[dict]:
+    return metrics.leaderboard_participants(_norm_sort(sort), _norm_period(period))
 
 
 @router.get("/api/leaderboard/locations", dependencies=[Depends(require_dashboard)])
-def leaderboard_locations(sort: str = "cost") -> list[dict]:
-    return metrics.leaderboard_locations(_norm_sort(sort))
+def leaderboard_locations(sort: str = "cost", period: str = "total") -> list[dict]:
+    return metrics.leaderboard_locations(_norm_sort(sort), _norm_period(period))
 
 
 @router.get("/api/teams/{team_id}", dependencies=[Depends(require_dashboard)])

@@ -41,6 +41,50 @@ def test_participant_leaderboard(client, payload, auth_headers, logged_in):
     assert parts[0]["team_id"] == "team-rocket"
 
 
+def test_leaderboard_period_today_filters_by_server_clock(
+    client, payload, auth_headers, logged_in
+):
+    """period=today restricts to sessions seen since local midnight (server clock);
+    the default (period=total) keeps the all-time cumulative view."""
+    from app.db import get_conn
+
+    client.post("/ingest", json=payload, headers=auth_headers)
+    # Age sess-2 well into the past so it falls outside "today" regardless of
+    # the Paris/UTC boundary. server_updated_at is the trusted server-clock column.
+    conn = get_conn()
+    conn.execute(
+        "UPDATE session SET server_updated_at = ? WHERE session_id = 'sess-2'",
+        ("2020-01-01T00:00:00+00:00",),
+    )
+    conn.commit()
+
+    # Default and explicit total see both of alice's sessions.
+    total = logged_in.get("/api/leaderboard/participants?period=total").json()
+    assert next(p for p in total if p["user_id"] == "alice@example.com")["session_count"] == 2
+    default = logged_in.get("/api/leaderboard/participants").json()
+    assert next(p for p in default if p["user_id"] == "alice@example.com")["session_count"] == 2
+
+    # Today drops the aged session.
+    today = logged_in.get("/api/leaderboard/participants?period=today").json()
+    assert next(p for p in today if p["user_id"] == "alice@example.com")["session_count"] == 1
+
+    # Same filtering applies to the teams board (cost shrinks to sess-1 only).
+    teams_today = logged_in.get("/api/leaderboard/teams?period=today").json()
+    rocket = next(t for t in teams_today if t["team_id"] == "team-rocket")
+    assert rocket["session_count"] == 1
+
+
+def test_leaderboard_period_invalid_falls_back_to_total(
+    client, payload, auth_headers, logged_in
+):
+    """An unknown period value is normalized to the all-time default, never rejected."""
+    client.post("/ingest", json=payload, headers=auth_headers)
+    bogus = logged_in.get("/api/leaderboard/teams?period=nonsense")
+    assert bogus.status_code == 200
+    rocket = next(t for t in bogus.json() if t["team_id"] == "team-rocket")
+    assert rocket["session_count"] == 2
+
+
 def test_model_distribution(client, payload, auth_headers, logged_in):
     client.post("/ingest", json=payload, headers=auth_headers)
     models = logged_in.get("/api/models").json()

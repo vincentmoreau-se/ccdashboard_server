@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { api, type SortBy } from "../api/client";
+import { api, type Period, type SortBy } from "../api/client";
 import { Bar, Panel, SourceBadge } from "../components/hud";
 import { formatCost, formatNum, formatTokens } from "../lib/format";
 
@@ -20,6 +20,11 @@ const MODE_LABELS: Record<Mode, string> = {
   locations: "Villes",
 };
 
+const PERIOD_LABELS: Record<Period, string> = {
+  today: "Aujourd'hui",
+  total: "Total",
+};
+
 function formatScore(n: number | null): string {
   return n == null ? "—" : `${n}/100`;
 }
@@ -27,23 +32,25 @@ function formatScore(n: number | null): string {
 export default function LeaderboardPage() {
   const [mode, setMode] = useState<Mode>("teams");
   const [sort, setSort] = useState<SortBy>("cost");
+  const [period, setPeriod] = useState<Period>("total");
   const teams = useQuery({
-    queryKey: ["teams", sort],
-    queryFn: () => api.teams(sort),
+    queryKey: ["teams", sort, period],
+    queryFn: () => api.teams(sort, period),
     refetchInterval: 30000,
   });
   const parts = useQuery({
-    queryKey: ["participants", sort],
-    queryFn: () => api.participants(sort),
+    queryKey: ["participants", sort, period],
+    queryFn: () => api.participants(sort, period),
     refetchInterval: 30000,
   });
   const locs = useQuery({
-    queryKey: ["locations", sort],
-    queryFn: () => api.locations(sort),
+    queryKey: ["locations", sort, period],
+    queryFn: () => api.locations(sort, period),
     refetchInterval: 30000,
   });
   const cfg = useQuery({ queryKey: ["config"], queryFn: api.config });
   const cur = cfg.data?.currency ?? "€";
+  const periodSuffix = period === "today" ? " — aujourd'hui" : "";
 
   const maxTeamCost = Math.max(1, ...(teams.data ?? []).map((t) => t.cost));
   const maxPartCost = Math.max(1, ...(parts.data ?? []).map((p) => p.cost));
@@ -56,6 +63,19 @@ export default function LeaderboardPage() {
           ▸ Classement général
         </h1>
         <div className="flex flex-wrap items-center gap-3">
+          <div className="flex border border-edge">
+            {(["today", "total"] as Period[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-4 py-1.5 font-display text-[11px] font-600 uppercase tracking-[0.2em] transition ${
+                  period === p ? "bg-deep text-void" : "text-ash hover:text-bone"
+                }`}
+              >
+                {PERIOD_LABELS[p]}
+              </button>
+            ))}
+          </div>
           <div className="flex border border-edge">
             {(["cost", "eval", "volume"] as SortBy[]).map((s) => (
               <button
@@ -86,7 +106,7 @@ export default function LeaderboardPage() {
       </div>
 
       {mode === "teams" && (
-        <Panel label={`Équipes — classées par ${SORT_LABELS[sort].toLowerCase()}`} accent="brand">
+        <Panel label={`Équipes — classées par ${SORT_LABELS[sort].toLowerCase()}${periodSuffix}`} accent="brand">
           <Table head={["#", "Équipe", "Ville", "Membres", "Sessions", "Tokens", "Volume", "Éval", "Cache", "Coût"]}>
             {(teams.data ?? []).map((t, i) => (
               <Row key={t.team_id} index={i}>
@@ -132,7 +152,7 @@ export default function LeaderboardPage() {
       )}
 
       {mode === "participants" && (
-        <Panel label={`Participants — classés par ${SORT_LABELS[sort].toLowerCase()}`} accent="deep">
+        <Panel label={`Participants — classés par ${SORT_LABELS[sort].toLowerCase()}${periodSuffix}`} accent="deep">
           <Table head={["#", "Participant", "Équipe", "Sessions", "Tokens", "Volume", "Éval", "Coût"]}>
             {(parts.data ?? []).map((p, i) => (
               <Row key={p.user_id} index={i}>
@@ -163,7 +183,7 @@ export default function LeaderboardPage() {
       )}
 
       {mode === "locations" && (
-        <Panel label={`Villes — classées par ${SORT_LABELS[sort].toLowerCase()}`} accent="brand">
+        <Panel label={`Villes — classées par ${SORT_LABELS[sort].toLowerCase()}${periodSuffix}`} accent="brand">
           <Table head={["#", "Ville", "Équipes", "Membres", "Sessions", "Tokens", "Volume", "Éval", "Cache", "Coût"]}>
             {(locs.data ?? []).map((l, i) => (
               <Row key={l.localisation} index={i}>
