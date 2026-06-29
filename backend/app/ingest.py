@@ -25,7 +25,7 @@ INSERT INTO session (
     web_search, web_fetch, cost, cost_known, tool_counts, skipped_lines,
     lines_generated, language_counts, framework_counts, builtin_tool_counts,
     user_tool_counts, skill_counts, mcp_server_counts, subagent_counts,
-    slash_command_counts, server_updated_at
+    slash_command_counts, server_updated_at, data_source
 ) VALUES (
     :session_uid, :source_key, :user_id, :session_id, :project, :cwd, :file_path,
     :ai_title, :git_branch, :cc_version, :started_at, :ended_at, :duration_seconds,
@@ -34,7 +34,7 @@ INSERT INTO session (
     :web_search, :web_fetch, :cost, :cost_known, :tool_counts, :skipped_lines,
     :lines_generated, :language_counts, :framework_counts, :builtin_tool_counts,
     :user_tool_counts, :skill_counts, :mcp_server_counts, :subagent_counts,
-    :slash_command_counts, :server_updated_at
+    :slash_command_counts, :server_updated_at, :data_source
 )
 ON CONFLICT(session_uid) DO UPDATE SET
     source_key=excluded.source_key,
@@ -72,7 +72,8 @@ ON CONFLICT(session_uid) DO UPDATE SET
     mcp_server_counts=excluded.mcp_server_counts,
     subagent_counts=excluded.subagent_counts,
     slash_command_counts=excluded.slash_command_counts,
-    server_updated_at=excluded.server_updated_at
+    server_updated_at=excluded.server_updated_at,
+    data_source=excluded.data_source
 """
 
 
@@ -80,7 +81,13 @@ def _iso(dt) -> str | None:
     return dt.isoformat() if dt is not None else None
 
 
-def _session_row(s: SessionIn, source_key: str, user_id: str, server_ts: str) -> dict:
+def _session_row(
+    s: SessionIn,
+    source_key: str,
+    user_id: str,
+    server_ts: str,
+    data_source: str = "ccdashboard",
+) -> dict:
     return {
         "session_uid": f"{source_key}::{s.session_id}",
         "source_key": source_key,
@@ -120,7 +127,49 @@ def _session_row(s: SessionIn, source_key: str, user_id: str, server_ts: str) ->
         "subagent_counts": json.dumps(s.subagent_counts),
         "slash_command_counts": json.dumps(s.slash_command_counts),
         "server_updated_at": server_ts,
+        "data_source": data_source,
     }
+
+
+def persist_sessions(
+    source_key: str,
+    machine_id: str,
+    user_id: str,
+    instance_id: str,
+    sessions: list[SessionIn],
+    *,
+    data_source: str = "ccdashboard",
+) -> int:
+    """Upsert a batch of sessions for one source in a single transaction.
+
+    Shared by the /ingest endpoint and the LiteLLM poller. Records the origin via
+    `source_instance` (keyed on source_key) and UPSERTs each session by
+    session_uid. Raises on failure so callers can react (the endpoint surfaces a
+    500 so the at-least-once client retries; the poller logs and retries later).
+    """
+    server_ts = now_utc()
+    rows = [
+        _session_row(s, source_key, user_id, server_ts, data_source)
+        for s in sessions
+    ]
+    conn = get_conn()
+    try:
+        with write_lock():
+            conn.execute("BEGIN")
+            conn.execute(
+                "INSERT INTO source_instance "
+                "(source_key, machine_id, user_id, instance_id, first_seen, last_seen) "
+                "VALUES (?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(source_key) DO UPDATE SET last_seen=excluded.last_seen",
+                (source_key, machine_id, user_id, instance_id, server_ts, server_ts),
+            )
+            if rows:
+                conn.executemany(_UPSERT_SQL, rows)
+            conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return len(rows)
 
 
 @router.post(
@@ -140,28 +189,11 @@ def ingest(payload: IngestPayload) -> IngestResponse:
 
     src = payload.source
     source_key = f"{src.machine_id}|{src.user_id}|{src.instance_id}"
-    server_ts = now_utc()
-    rows = [
-        _session_row(s, source_key, src.user_id, server_ts) for s in payload.sessions
-    ]
-
-    conn = get_conn()
     try:
-        with write_lock():
-            conn.execute("BEGIN")
-            conn.execute(
-                "INSERT INTO source_instance "
-                "(source_key, machine_id, user_id, instance_id, first_seen, last_seen) "
-                "VALUES (?, ?, ?, ?, ?, ?) "
-                "ON CONFLICT(source_key) DO UPDATE SET last_seen=excluded.last_seen",
-                (source_key, src.machine_id, src.user_id, src.instance_id,
-                 server_ts, server_ts),
-            )
-            if rows:
-                conn.executemany(_UPSERT_SQL, rows)
-            conn.commit()
+        accepted = persist_sessions(
+            source_key, src.machine_id, src.user_id, src.instance_id, payload.sessions
+        )
     except Exception:  # noqa: BLE001 — surface as 500 so the client retries
-        conn.rollback()
         logger.exception("ingest failed; rolling back")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -171,7 +203,7 @@ def ingest(payload: IngestPayload) -> IngestResponse:
     known = known_user_ids()
     unknown = [src.user_id] if src.user_id not in known else []
     return IngestResponse(
-        status="ok", accepted_sessions=len(rows), unknown_users=unknown
+        status="ok", accepted_sessions=accepted, unknown_users=unknown
     )
 
 

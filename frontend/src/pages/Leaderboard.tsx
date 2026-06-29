@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { api, type SortBy } from "../api/client";
-import { Bar, Panel } from "../components/hud";
+import { Bar, Panel, SourceBadge } from "../components/hud";
 import { formatCost, formatNum, formatTokens } from "../lib/format";
 
 type Mode = "teams" | "participants" | "locations";
@@ -139,6 +139,7 @@ export default function LeaderboardPage() {
                 <Rank n={p.rank} />
                 <Cell className="font-display tracking-wide text-bone">
                   {p.display_name}
+                  <SourceBadge sources={p.data_sources} />
                 </Cell>
                 <Cell className="text-ash">{p.team_id}</Cell>
                 <Cell>{p.session_count}</Cell>

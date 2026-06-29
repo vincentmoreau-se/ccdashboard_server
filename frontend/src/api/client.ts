@@ -115,6 +115,7 @@ export interface ParticipantRow {
   cost: number;
   volume: number;
   score: number | null;
+  data_sources: string[];
 }
 
 export interface ModelRow {
@@ -160,6 +161,7 @@ export interface SessionRow {
   models: string[];
   provider: string;
   is_active: boolean;
+  data_source: string | null;
   message_count: number;
   duration_seconds: number | null;
   tokens: number;
