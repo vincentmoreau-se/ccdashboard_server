@@ -30,8 +30,8 @@ def _live_cutoff(live_window_seconds: int) -> str:
 def _start_of_today_utc() -> str:
     """Midnight (Europe/Paris) of the current day, as a UTC ISO string.
 
-    Comparable lexicographically to server_updated_at (also written via now_utc()
-    as a +00:00 ISO string), so it can be used directly in a SQL `>=` bound.
+    Comparable lexicographically to the +00:00 ISO timestamps stored in the
+    session table (started_at), so it can be used directly in a SQL `>=` bound.
     """
     now_local = datetime.now(PARIS_TZ)
     start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -39,13 +39,17 @@ def _start_of_today_utc() -> str:
 
 
 def _period_clause(period: str, alias: str = "s") -> tuple[str, list]:
-    """WHERE fragment (+ params) restricting sessions to "today" by server clock.
+    """WHERE fragment (+ params) restricting sessions to ones STARTED "today".
 
-    period="today" keeps sessions seen since local-midnight; anything else is
-    the all-time/cumulative default and adds no constraint.
+    We filter on started_at (when the session actually ran), NOT server_updated_at:
+    ingest is at-least-once and re-sends whole sessions, so server_updated_at gets
+    bumped to "now" for every still-reported session — making it equal to the
+    all-time total. started_at is rewritten identically on each re-send, so it is
+    immune to that. A session straddling midnight is attributed to its start day
+    (same convention as timeseries()). period != "today" adds no constraint.
     """
     if period == "today":
-        return f"{alias}.server_updated_at >= ?", [_start_of_today_utc()]
+        return f"{alias}.started_at >= ?", [_start_of_today_utc()]
     return "", []
 
 

@@ -41,20 +41,27 @@ def test_participant_leaderboard(client, payload, auth_headers, logged_in):
     assert parts[0]["team_id"] == "team-rocket"
 
 
-def test_leaderboard_period_today_filters_by_server_clock(
+def test_leaderboard_period_today_filters_by_started_at(
     client, payload, auth_headers, logged_in
 ):
-    """period=today restricts to sessions seen since local midnight (server clock);
-    the default (period=total) keeps the all-time cumulative view."""
-    from app.db import get_conn
+    """period=today restricts to sessions STARTED since local midnight (started_at);
+    the default (period=total) keeps the all-time cumulative view.
+
+    Crucially, the filter must use started_at, NOT server_updated_at: an old
+    session that was re-ingested today has a fresh server_updated_at but must
+    still be excluded from "today". We reproduce exactly that here."""
+    from app.db import get_conn, now_utc
 
     client.post("/ingest", json=payload, headers=auth_headers)
-    # Age sess-2 well into the past so it falls outside "today" regardless of
-    # the Paris/UTC boundary. server_updated_at is the trusted server-clock column.
     conn = get_conn()
+    # sess-1 ran today; sess-2 is an old session. Both were just ingested, so both
+    # carry a "now" server_updated_at — only started_at distinguishes them.
     conn.execute(
-        "UPDATE session SET server_updated_at = ? WHERE session_id = 'sess-2'",
-        ("2020-01-01T00:00:00+00:00",),
+        "UPDATE session SET started_at = ? WHERE session_id = 'sess-1'",
+        (now_utc(),),
+    )
+    conn.execute(
+        "UPDATE session SET started_at = '2020-01-01T00:00:00+00:00' WHERE session_id = 'sess-2'"
     )
     conn.commit()
 
