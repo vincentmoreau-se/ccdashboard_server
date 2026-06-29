@@ -20,6 +20,27 @@ def test_unknown_user_goes_to_unknown_bucket(client, payload, auth_headers, logg
     assert "ghost@example.com" in unknown["unknown_users"]
 
 
+def test_cp1252_csv_does_not_crash(client, payload, auth_headers, logged_in):
+    # Excel-exported CSV with a curly apostrophe (cp1252 byte 0x92) is not valid
+    # UTF-8; the loader must degrade gracefully instead of raising (startup crash).
+    payload["source"]["user_id"] = "ghost@example.com"
+    client.post("/ingest", json=payload, headers=auth_headers)
+
+    raw = (
+        "user_id,team_id,localisation,display_name\n"
+        "ghost@example.com,team-spectre,Salle d’or,Ghost\n"
+    ).encode("cp1252")
+    assert b"\x92" in raw  # the curly apostrophe is the offending byte
+    resp = logged_in.post(
+        "/api/admin/participants",
+        files={"file": ("p.csv", io.BytesIO(raw), "text/csv")},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["loaded"] == 1
+    teams = logged_in.get("/api/leaderboard/teams").json()
+    assert "team-spectre" in {t["team_id"] for t in teams}
+
+
 def test_admin_reupload_rebuckets_history(client, payload, auth_headers, logged_in):
     payload["source"]["user_id"] = "ghost@example.com"
     client.post("/ingest", json=payload, headers=auth_headers)

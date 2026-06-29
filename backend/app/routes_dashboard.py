@@ -145,7 +145,7 @@ def unknown_participants() -> dict:
 @router.post("/api/admin/participants", dependencies=[Depends(require_dashboard)])
 async def upload_participants(file: UploadFile) -> dict:
     raw = await file.read()
-    loaded = enrichment.load_from_text(raw.decode("utf-8-sig"))
+    loaded = enrichment.load_from_bytes(raw)
     return {
         "loaded": loaded,
         "still_unknown": enrichment.unknown_users_in_sessions(),
