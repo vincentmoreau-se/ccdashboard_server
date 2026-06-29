@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     # Presentation
     currency: str = "€"
     event_name: str = "Hackathon"
+    # Stored costs are USD (Anthropic list prices client-side, LiteLLM `spend`).
+    # Costs are multiplied by this rate at display time so the "€" label is truthful.
+    # Default 1.0 = no conversion; set CCSRV_USD_EUR_RATE (~0.92) in deployment.
+    usd_eur_rate: float = 1.0
 
     # LiteLLM source (optional). When enabled, a background poller pulls per-key
     # usage from the LiteLLM proxy and fills in participants not covered by the

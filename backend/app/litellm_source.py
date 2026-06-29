@@ -186,6 +186,15 @@ def poll_once() -> int:
         ended_at = (
             seen.isoformat() if seen is not None else f"{date}T23:59:59+00:00"
         )
+        # LiteLLM's prompt_tokens follows the OpenAI convention: it INCLUDES the
+        # cached input tokens. ccdashboard (and the "tokens = in+out, cache counted
+        # separately" invariant) report only non-cached input, so strip the cache
+        # back out so the leaderboard token column means the same thing for both
+        # sources. Guard: if prompt_tokens already excludes cache (would go
+        # negative), keep it as-is.
+        non_cache_input = acc["input"] - acc["cache_read"] - acc["cache_creation"]
+        if non_cache_input < 0:
+            non_cache_input = acc["input"]
         by_user.setdefault(user_id, []).append(
             SessionIn(
                 session_id=f"litellm:{date}",
@@ -196,7 +205,7 @@ def poll_once() -> int:
                 models=sorted(acc["models"]),
                 message_count=acc["requests"],
                 usage=Usage(
-                    input=acc["input"],
+                    input=non_cache_input,
                     output=acc["output"],
                     cache_read=acc["cache_read"],
                     cache_write_5m=acc["cache_creation"],

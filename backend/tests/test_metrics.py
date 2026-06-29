@@ -33,6 +33,48 @@ def test_team_leaderboard_ordering(client, payload, auth_headers, logged_in):
     assert abs(rocket["cost"] - 1.7345) < 1e-6
 
 
+def test_team_leaderboard_avg_cost(client, payload, auth_headers, logged_in):
+    """Teams expose avg_cost = total cost / member count. Adding a second member
+    (bob, same team) must halve the average relative to the team total."""
+    import copy
+
+    client.post("/ingest", json=payload, headers=auth_headers)
+    bob = copy.deepcopy(payload)
+    bob["source"]["user_id"] = "bob@example.com"
+    bob["source"]["machine_id"] = "laptop-bob"
+    for i, s in enumerate(bob["sessions"]):
+        s["session_id"] = f"sess-bob-{i}"
+    client.post("/ingest", json=bob, headers=auth_headers)
+
+    teams = logged_in.get("/api/leaderboard/teams").json()
+    rocket = next(t for t in teams if t["team_id"] == "team-rocket")
+    assert rocket["participant_count"] == 2
+    assert "avg_cost" in rocket
+    assert abs(rocket["avg_cost"] - round(rocket["cost"] / 2, 4)) < 1e-9
+
+
+def test_location_leaderboard_has_avg_cost(client, payload, auth_headers, logged_in):
+    client.post("/ingest", json=payload, headers=auth_headers)
+    locs = logged_in.get("/api/leaderboard/locations").json()
+    room = next(l for l in locs if l["localisation"] == "Room A")
+    assert abs(room["avg_cost"] - round(room["cost"] / room["participant_count"], 4)) < 1e-9
+
+
+def test_usd_eur_rate_scales_costs(client, payload, auth_headers, logged_in, monkeypatch):
+    """CCSRV_USD_EUR_RATE multiplies every displayed cost (stored values are USD)."""
+    from app.config import get_settings
+
+    client.post("/ingest", json=payload, headers=auth_headers)
+    base = logged_in.get("/api/leaderboard/teams").json()
+    base_cost = next(t for t in base if t["team_id"] == "team-rocket")["cost"]
+
+    monkeypatch.setenv("CCSRV_USD_EUR_RATE", "0.5")
+    get_settings.cache_clear()
+    scaled = logged_in.get("/api/leaderboard/teams").json()
+    scaled_cost = next(t for t in scaled if t["team_id"] == "team-rocket")["cost"]
+    assert abs(scaled_cost - round(base_cost * 0.5, 4)) < 1e-9
+
+
 def test_participant_leaderboard(client, payload, auth_headers, logged_in):
     client.post("/ingest", json=payload, headers=auth_headers)
     parts = logged_in.get("/api/leaderboard/participants").json()

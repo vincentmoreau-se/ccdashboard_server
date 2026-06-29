@@ -87,6 +87,7 @@ export interface TeamRow {
   session_count: number;
   tokens: number;
   cost: number;
+  avg_cost: number;
   volume: number;
   eval_score: number | null;
   cache_efficiency: number;
@@ -100,6 +101,7 @@ export interface LocationRow {
   session_count: number;
   tokens: number;
   cost: number;
+  avg_cost: number;
   volume: number;
   eval_score: number | null;
   cache_efficiency: number;

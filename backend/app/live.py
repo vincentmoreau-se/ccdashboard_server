@@ -13,6 +13,7 @@ from app.db import get_conn
 from app.metrics import (
     TEAM_EXPR,
     TOKENS_SQL,
+    _eur,
     _live_cutoff,
 )
 
@@ -43,7 +44,7 @@ def _rate_from_snapshots(scope: str = "global", window: int = 3) -> dict:
     d_cost = max(0.0, newest["total_cost"] - oldest["total_cost"])
     return {
         "tokens_per_min": round(d_tokens / (dt / 60.0), 1),
-        "cost_per_hour": round(d_cost / (dt / 3600.0), 4),
+        "cost_per_hour": _eur(d_cost / (dt / 3600.0)),
     }
 
 
@@ -96,7 +97,7 @@ def live_snapshot(settings: Settings) -> dict:
         "active_participants": counts["active_participants"],
         "active_teams": counts["active_teams"],
         "live_tokens": counts["live_tokens"],
-        "live_cost": round(counts["live_cost"], 4),
+        "live_cost": _eur(counts["live_cost"]),
         "tokens_per_min": rate["tokens_per_min"],
         "cost_per_hour": rate["cost_per_hour"],
         "top_teams": [

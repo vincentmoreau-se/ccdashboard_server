@@ -5,7 +5,19 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+from app.config import get_settings
 from app.db import get_conn
+
+
+def _eur(usd: float | None) -> float:
+    """Convert a stored USD cost to the display currency (rounded to 4 decimals).
+
+    Stored costs are USD (Anthropic list prices client-side, LiteLLM `spend`); the
+    dashboard labels everything "€". The single conversion point keeps both sources
+    consistent. Rate defaults to 1.0 (no-op) unless CCSRV_USD_EUR_RATE is set.
+    """
+    return round((usd or 0.0) * get_settings().usd_eur_rate, 4)
+
 
 # Boundary of "today" for the period filter is the local civil day in France,
 # not UTC (a UTC midnight would flip "today" at 02:00 Paris time in summer).
@@ -93,7 +105,7 @@ def overview() -> dict:
         "cache_read_tokens": row["cache_read"],
         "cache_write_tokens": row["cache_write"],
         "cache_efficiency": round(cache_eff, 4),
-        "total_cost": round(row["total_cost"], 4),
+        "total_cost": _eur(row["total_cost"]),
         "cost_known": bool(row["cost_known"]) if row["cost_known"] is not None else True,
     }
 
@@ -124,8 +136,8 @@ def timeseries(bucket: str = "hour", metric: str = "cost") -> list[dict]:
             "bucket": r["bucket"],
             "session_count": r["session_count"],
             "tokens": r["tokens"],
-            "cost": round(r["cost"], 4),
-            "value": r["tokens"] if metric == "tokens" else round(r["cost"], 4),
+            "cost": _eur(r["cost"]),
+            "value": r["tokens"] if metric == "tokens" else _eur(r["cost"]),
         }
         for r in rows
     ]
@@ -190,7 +202,10 @@ def leaderboard_teams(sort: str = "cost", period: str = "total") -> list[dict]:
                 "participant_count": r["participant_count"],
                 "session_count": r["session_count"],
                 "tokens": r["tokens"],
-                "cost": round(r["cost"], 4),
+                "cost": _eur(r["cost"]),
+                "avg_cost": _eur(
+                    r["cost"] / r["participant_count"]
+                ) if r["participant_count"] else 0.0,
                 "volume": r["volume"],
                 "eval_score": round(eval_score, 1) if eval_score is not None else None,
                 "_sort_eval": eval_score,
@@ -248,7 +263,10 @@ def leaderboard_locations(sort: str = "cost", period: str = "total") -> list[dic
                 "participant_count": r["participant_count"],
                 "session_count": r["session_count"],
                 "tokens": r["tokens"],
-                "cost": round(r["cost"], 4),
+                "cost": _eur(r["cost"]),
+                "avg_cost": _eur(
+                    r["cost"] / r["participant_count"]
+                ) if r["participant_count"] else 0.0,
                 "volume": r["volume"],
                 "eval_score": round(eval_score, 1) if eval_score is not None else None,
                 "_sort_eval": eval_score,
@@ -291,7 +309,7 @@ def leaderboard_participants(sort: str = "cost", period: str = "total") -> list[
             "team_id": r["team_id"],
             "session_count": r["session_count"],
             "tokens": r["tokens"],
-            "cost": round(r["cost"], 4),
+            "cost": _eur(r["cost"]),
             "volume": r["volume"],
             "data_sources": sorted((r["data_sources"] or "").split(",")) if r["data_sources"] else [],
             "score": (
@@ -350,7 +368,7 @@ def model_distribution() -> list[dict]:
             agg[m]["cost"] += r["cost"]
             agg[m]["provider"] = r["provider"]
     out = [
-        {"model": m, **v, "cost": round(v["cost"], 4)} for m, v in agg.items()
+        {"model": m, **v, "cost": _eur(v["cost"])} for m, v in agg.items()
     ]
     out.sort(key=lambda x: x["tokens"], reverse=True)
     return out
@@ -372,7 +390,7 @@ def provider_split() -> list[dict]:
             "provider": r["provider"],
             "session_count": r["session_count"],
             "tokens": r["tokens"],
-            "cost": round(r["cost"], 4),
+            "cost": _eur(r["cost"]),
         }
         for r in rows
     ]
@@ -525,7 +543,7 @@ def _session_brief(r) -> dict:
         "message_count": r["message_count"],
         "duration_seconds": r["duration_seconds"],
         "tokens": r["in_tokens"] + r["out_tokens"],
-        "cost": round(r["cost"], 4),
+        "cost": _eur(r["cost"]),
         "started_at": r["started_at"],
         "ended_at": r["ended_at"],
     }
