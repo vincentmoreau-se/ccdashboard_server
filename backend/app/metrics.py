@@ -175,7 +175,7 @@ def leaderboard_teams(sort: str = "cost", period: str = "total") -> list[dict]:
         FROM session s
         LEFT JOIN participant p ON p.user_id = s.user_id
         {where_sql}
-        GROUP BY team_id
+        GROUP BY {TEAM_EXPR}
         """,
         params,
     ).fetchall()
@@ -187,7 +187,7 @@ def leaderboard_teams(sort: str = "cost", period: str = "total") -> list[dict]:
         SELECT COALESCE(p.team_id, 'UNKNOWN') AS team_id, AVG(e.score) AS eval_score
         FROM evaluation e
         LEFT JOIN participant p ON p.user_id = e.user_id
-        GROUP BY team_id
+        GROUP BY COALESCE(p.team_id, 'UNKNOWN')
         """
     ).fetchall()
     eval_by_team = {r["team_id"]: r["eval_score"] for r in eval_rows}
@@ -235,7 +235,7 @@ def leaderboard_locations(sort: str = "cost", period: str = "total") -> list[dic
         FROM session s
         LEFT JOIN participant p ON p.user_id = s.user_id
         {where_sql}
-        GROUP BY localisation
+        GROUP BY {LOC_EXPR}
         """,
         params,
     ).fetchall()
@@ -247,7 +247,7 @@ def leaderboard_locations(sort: str = "cost", period: str = "total") -> list[dic
         SELECT COALESCE(p.localisation, 'UNKNOWN') AS localisation, AVG(e.score) AS eval_score
         FROM evaluation e
         LEFT JOIN participant p ON p.user_id = e.user_id
-        GROUP BY localisation
+        GROUP BY COALESCE(p.localisation, 'UNKNOWN')
         """
     ).fetchall()
     eval_by_loc = {r["localisation"]: r["eval_score"] for r in eval_rows}
