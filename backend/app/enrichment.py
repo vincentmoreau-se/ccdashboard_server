@@ -44,6 +44,21 @@ def _replace_participants(rows: list[dict[str, str]]) -> int:
     return len(rows)
 
 
+def _decode_bytes(raw: bytes) -> str:
+    """Decode CSV bytes tolerantly: UTF-8 (BOM-aware) first, then Windows-1252.
+
+    Spreadsheets (Excel) routinely export CSVs as cp1252 — e.g. a curly
+    apostrophe becomes byte 0x92, which is not valid UTF-8. A strict utf-8 read
+    would raise and, at startup, crash the whole app. cp1252 with errors=replace
+    maps every byte and never raises, so a malformed file degrades gracefully
+    instead of taking the server down.
+    """
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return raw.decode("cp1252", errors="replace")
+
+
 def load_from_text(text: str) -> int:
     """Parse CSV text and (re)load the participant table. Returns row count."""
     reader = csv.DictReader(io.StringIO(text))
@@ -51,12 +66,17 @@ def load_from_text(text: str) -> int:
     return _replace_participants(rows)
 
 
+def load_from_bytes(raw: bytes) -> int:
+    """Decode CSV bytes tolerantly then (re)load the participant table."""
+    return load_from_text(_decode_bytes(raw))
+
+
 def load_from_path(path: str) -> int:
     """Load participants from a CSV file at startup. Missing file is tolerated."""
     if not path or not os.path.exists(path):
         return 0
-    with open(path, encoding="utf-8-sig") as fh:
-        return load_from_text(fh.read())
+    with open(path, "rb") as fh:
+        return load_from_bytes(fh.read())
 
 
 def known_user_ids() -> set[str]:
