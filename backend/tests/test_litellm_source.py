@@ -53,7 +53,11 @@ def _daily(date: str) -> dict:
                         TOKEN: {
                             "metrics": {
                                 "spend": 4.5,
-                                "prompt_tokens": 1000,
+                                # LiteLLM prompt_tokens follows the OpenAI convention:
+                                # it INCLUDES cache (1000 real input + 5000 read + 300
+                                # creation). The poller strips cache back out so
+                                # in_tokens == non-cached input (1000).
+                                "prompt_tokens": 6300,
                                 "completion_tokens": 200,
                                 "cache_read_input_tokens": 5000,
                                 "cache_creation_input_tokens": 300,
@@ -107,8 +111,11 @@ def test_poll_writes_litellm_session(litellm_env, monkeypatch):
     ).fetchone()
     assert row["data_source"] == "litellm"
     assert row["session_id"] == f"litellm:{today}"
-    assert row["in_tokens"] == 1000
+    assert row["in_tokens"] == 1000  # prompt_tokens (6300) minus cache (5000+300)
     assert row["out_tokens"] == 200
+    # Invariant: the displayed token total (in+out) excludes cache, same as the
+    # ccdashboard source — cache stays in its own columns.
+    assert row["in_tokens"] + row["out_tokens"] == 1200
     assert row["cache_read"] == 5000
     assert row["cache_write_5m"] == 300
     assert row["message_count"] == 12

@@ -31,7 +31,8 @@ const TEAM_COLUMNS: Column[] = [
   { label: "Volume", key: "volume", type: "num" },
   { label: "Éval", key: "eval_score", type: "num" },
   { label: "Cache", key: "cache_efficiency", type: "num" },
-  { label: "Coût", key: "cost", type: "num", align: "right" },
+  { label: "Coût moyen", key: "avg_cost", type: "num", align: "right" },
+  { label: "Coût total", key: "cost", type: "num", align: "right" },
 ];
 
 const PARTICIPANT_COLUMNS: Column[] = [
@@ -55,7 +56,8 @@ const LOCATION_COLUMNS: Column[] = [
   { label: "Volume", key: "volume", type: "num" },
   { label: "Éval", key: "eval_score", type: "num" },
   { label: "Cache", key: "cache_efficiency", type: "num" },
-  { label: "Coût", key: "cost", type: "num", align: "right" },
+  { label: "Coût moyen", key: "avg_cost", type: "num", align: "right" },
+  { label: "Coût total", key: "cost", type: "num", align: "right" },
 ];
 
 function formatScore(n: number | null): string {
@@ -181,6 +183,9 @@ export default function LeaderboardPage() {
                     </div>
                   </div>
                 </td>
+                <td className="py-2 pr-4 text-right font-mono text-ash tnum">
+                  {formatCost(t.avg_cost, cur)}
+                </td>
                 <td className="py-2 pr-2">
                   <div className="flex items-center justify-end gap-3">
                     <div className="hidden w-24 sm:block">
@@ -252,6 +257,9 @@ export default function LeaderboardPage() {
                       <Bar pct={l.cache_efficiency * 100} accent="deep" />
                     </div>
                   </div>
+                </td>
+                <td className="py-2 pr-4 text-right font-mono text-ash tnum">
+                  {formatCost(l.avg_cost, cur)}
                 </td>
                 <td className="py-2 pr-2">
                   <div className="flex items-center justify-end gap-3">
